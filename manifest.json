@@ -7,7 +7,7 @@
             "version": "0.3",
             "short_description": "Guide for extension developers",
             "icon": "https://raw.githubusercontent.com/lnbits/example-extension/main/static/bitcoin-extension.png",
-            "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/extensions/copilot/streamer-copilot-extension.zip",
+            "archive": "https://github.com/lnbits/lnbits-extensions/raw/main/extensions/example/example-extension.zip",
             "hash": "3b5279b9038e31dcbb673b081ab482bd6b855c3ebfde9cd90ad4e98c93f5271a"
         }
     ]
