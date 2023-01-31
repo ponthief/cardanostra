@@ -1,7 +1,7 @@
 {
     "extensions": [
          {
-            "id": "exampole",
+            "id": "example",
             "repo": "https://github.com/lnbits/example-extension",
             "name": "Build your own!",
             "version": "0.3",
