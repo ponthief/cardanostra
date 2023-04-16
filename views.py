@@ -1,6 +1,6 @@
 from fastapi import Depends, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from starlette.responses import HTMLResponse
 
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
