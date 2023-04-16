@@ -710,9 +710,11 @@ version = "0.10.3"
 description = "LNbits, free and open-source Lightning wallet and accounts system."
 category = "main"
 optional = false
-python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-files = []
-develop = true
+python-versions = ">=3.7,<4.0"
+files = [
+    {file = "lnbits-0.10.3-cp310-cp310-manylinux_2_37_x86_64.whl", hash = "sha256:83167914d5d88e94bc63ee53281d4d76d64bf580b752ab9f414bde343dffbc26"},
+    {file = "lnbits-0.10.3.tar.gz", hash = "sha256:ba0154b9e171b4f84289b92d401d373d371661a0d62289941ceeb33f3c7692c6"},
+]
 
 [package.dependencies]
 async-timeout = "4.0.2"
@@ -744,10 +746,6 @@ typing-extensions = "4.4.0"
 uvicorn = "0.18.3"
 uvloop = "0.16.0"
 websockets = "10.0"
-
-[package.source]
-type = "directory"
-url = "../../.."
 
 [[package]]
 name = "lnurl"
@@ -1708,4 +1706,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10 | ^3.9 | ^3.8 | ^3.7"
-content-hash = "42a95f06116754212ea730cead3e5dcc43c421f76355e9c75650ad2ceffebd00"
+content-hash = "e78b3ffbd830b050327ba4c4f398bd3e6b8080b3214c2e0895de018e49db5fe5"
