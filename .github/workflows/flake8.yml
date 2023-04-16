@@ -24,4 +24,4 @@ jobs:
         run: |
           poetry install
       - name: Run tests
-        run: poetry run flake8
+        run: make flake8

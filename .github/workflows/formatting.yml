@@ -23,11 +23,11 @@ jobs:
       - name: Install packages
         run: |
           poetry install
-          npm install prettier
+          npm install
       - name: Check black
-        run: poetry run black --check .
+        run: make checkblack
       - name: Check isort
-        run: poetry run isort --check-only .
+        run: make checkisort
       - uses: actions/setup-node@v3
       - name: Check prettier
-        run: poetry run ./node_modules/.bin/prettier --check lnbits
+        run: make checkprettier

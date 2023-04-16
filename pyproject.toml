@@ -8,6 +8,13 @@ authors = ["Alan Bits <alan@lnbits.com>"]
 python = "^3.10 | ^3.9 | ^3.8 | ^3.7"
 lnbits = "^0.10.3"
 
+[tool.poetry.dev-dependencies]
+isort = "^5.10.1"
+black = "^22.6.0"
+mypy = "^0.971"
+flake8 = { version = "^6.0.0", python = ">=3.8.1" }
+pylint = { version = "^2.15.10", python = ">=3.7.2" }
+
 [tool.isort]
 profile = "black"
 
@@ -18,7 +25,6 @@ include = [
 
 [tool.mypy]
 files = "."
-follow_imports = "silent"
 
 [[tool.mypy.overrides]]
 ignore_missing_imports = "True"
