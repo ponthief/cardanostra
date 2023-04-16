@@ -26,9 +26,6 @@ include = [
 [tool.mypy]
 files = "."
 
-[[tool.mypy.overrides]]
-ignore_missing_imports = "True"
-
 [tool.pytest.ini_options]
 addopts = "--durations=1"
 testpaths = [

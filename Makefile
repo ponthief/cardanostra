@@ -16,6 +16,9 @@ black:
 flake8:
 	poetry run flake8
 
+mypy:
+	poetry run mypy
+
 isort:
 	poetry run isort .
 
