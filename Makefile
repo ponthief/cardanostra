@@ -5,7 +5,7 @@ format: prettier isort black
 check: pyright pylint flake8 checkisort checkblack checkprettier
 
 prettier:
-	poetry run ./node_modules/.bin/prettier --write config.json manifest.json static
+	poetry run ./node_modules/.bin/prettier --write config.json manifest.json static templates
 
 pyright:
 	poetry run ./node_modules/.bin/pyright
@@ -26,7 +26,7 @@ pylint:
 	poetry run pylint *.py
 
 checkprettier:
-	poetry run ./node_modules/.bin/prettier --check config.json manifest.json static
+	poetry run ./node_modules/.bin/prettier --check config.json manifest.json static templates
 
 checkblack:
 	poetry run black --check .

@@ -2,4 +2,4 @@
 
 # add your dependencies here
 
-# add your fnctions here
+# add your functions here
