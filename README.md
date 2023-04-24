@@ -1,4 +1,6 @@
-<h1>Example Extension</h1>
+# Example Extension - <small>[LNbits](https://github.com/lnbits/lnbits) extension</small>
+<small>For more about LNBits extension check [this tutorial](https://github.com/lnbits/lnbits/wiki/LNbits-Extensions)</small>
+
 <h2>*tagline*</h2>
 This is an example extension to help you organise and build you own.
 
