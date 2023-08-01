@@ -7,28 +7,28 @@ from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
 
-db = Database("ext_example")
+db = Database("ext_nostrboltbot")
 
-example_ext: APIRouter = APIRouter(prefix="/example", tags=["example"])
+nostrboltcardbot_ext: APIRouter = APIRouter(prefix="/nostrboltcardbot", tags=["nostrboltcardbot"])
 
-example_static_files = [
+nostrboltcardbot_static_files = [
     {
-        "path": "/example/static",
-        "app": StaticFiles(packages=[("lnbits", "extensions/example/static")]),
-        "name": "example_static",
+        "path": "/nostrboltcardbot/static",
+        "app": StaticFiles(packages=[("lnbits", "extensions/nostrboltcardbot/static")]),
+        "name": "nostrboltcardbot_static",
     }
 ]
 
 
-def example_renderer():
-    return template_renderer(["lnbits/extensions/example/templates"])
+def nostrboltcardbot_renderer():
+    return template_renderer(["lnbits/extensions/nostrboltcardbot/templates"])
 
 
-from .tasks import wait_for_paid_invoices
+from .tasks import start_bot
 from .views import *  # noqa: F401,F403
 from .views_api import *  # noqa: F401,F403
 
 
-def tpos_start():
+def bot_start():
     loop = asyncio.get_event_loop()
-    loop.create_task(catch_everything_and_restart(wait_for_paid_invoices))
+    loop.create_task(catch_everything_and_restart(start_bot))

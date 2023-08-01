@@ -1,9 +1,7 @@
 {
-    "repos": [
-        {
-            "id": "example",
-            "organisation": "lnbits",
-            "repository": "example"
-        }
-    ]
-}
+    "name": "Nostr BoltCard Control Bot",
+    "short_description": "Control BoltCard via Nostr",
+    "tile": "/boltcards/static/image/boltcard.png",
+    "contributors": ["ponthief"],
+    "dependencies": ["boltcards", "usermanager"]
+  }
