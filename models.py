@@ -58,12 +58,12 @@ class Card(BaseModel):
 class NostrCardData(BaseModel):    
     uid: str = Query(...)
     npub: str = Query(...)  
-    card_name: str = Query(...)
+    cardname: str = Query(...)
 
 class NostrBotCard(BaseModel):    
     uid: str
     npub: str
-    card_name: str        
+    cardname: str        
 
     @classmethod
     def from_row(cls, row: Row) -> "NostrBotCard":

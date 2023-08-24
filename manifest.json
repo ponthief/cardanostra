@@ -3,5 +3,5 @@
     "short_description": "Control BoltCard via Nostr",
     "tile": "/boltcards/static/image/boltcard.png",
     "contributors": ["ponthief"],
-    "dependencies": ["boltcards", "usermanager"]
+    "dependencies": ["boltcards"]
   }

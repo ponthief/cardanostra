@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 from httpx import AsyncClient, HTTPStatusError
 
-from .models import Card, Wallet
+from .models import Card
 from .settings import nostrbot_settings
 
 
@@ -18,24 +18,24 @@ class LnbitsAPI:
         self.lnbits_url = lnbits_url        
     
 
-    async def get_user_cards(self, user_id: str ) -> Optional[Card]:      
-        wallets = await self.request(
-            "GET",
-            f'/wallets/{user_id}',
-            self.admin_key,
-            extension="usermanager",
-        )
-        if wallets:
-            cards = await self.request(
-            "GET",
-            '/cards',
-            self.admin_key,
-            extension="boltcards",
-            params={"wallet": str(discord_user.id)},
-        )
-        # wallet = Wallet(**wallets[0])
+    # async def get_user_cards(self, user_id: str ) -> Optional[Card]:      
+    #     wallets = await self.request(
+    #         "GET",
+    #         f'/wallets/{user_id}',
+    #         self.admin_key,
+    #         extension="usermanager",
+    #     )
+    #     if wallets:
+    #         cards = await self.request(
+    #         "GET",
+    #         '/cards',
+    #         self.admin_key,
+    #         extension="boltcards",
+    #         params={"wallet": str(discord_user.id)},
+    #     )
+    #     # wallet = Wallet(**wallets[0])
                 
-        return cards
+    #     return cards
         
 
     async def request(

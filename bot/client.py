@@ -1,10 +1,10 @@
 from __future__ import annotations
-# from pynostr.relay_manager import RelayManager
-# from pynostr.filters import FiltersList, Filters
-# from pynostr.event import EventKind
+from loguru import logger
+import logging
+import websocket
+import rel
 from fastapi import Depends, Request, WebSocket
-from lnbits.extensions.relay.client_manager import NostrClientConnection, NostrClientManager
-from lnbits.extensions.relay.relay import NostrRelay
+from lnbits.extensions.nostrrelay.relay.client_manager import NostrClientConnection, NostrClientManager
 import uuid
 from typing import TYPE_CHECKING
 from httpx import AsyncClient
@@ -25,7 +25,7 @@ class LnbitsClient():
         lnbits_url: str,
         data_folder: str,
         bot_priv_key: str,
-        nostr_relay: str,
+        # nostr_relay: str,
         **options,
     ):
         super().__init__(**options)
@@ -33,7 +33,7 @@ class LnbitsClient():
         self.lnbits_url = lnbits_url
         self.data_folder = data_folder
         self.bot_priv_key = bot_priv_key
-        self.nostr_relay = nostr_relay
+        # self.nostr_relay = nostr_relay
         self.api = LnbitsAPI(admin_key=admin_key, http=http, lnbits_url=lnbits_url)
 
     # In this basic example, we just synchronize the app commands to one guild.
@@ -71,20 +71,24 @@ class LnbitsInteraction():
 
 
 
-def create_client(admin_key: str, http: AsyncClient, lnbits_url: str, data_folder: str, priv_key: str,nostr_relay: str):
+def create_client(admin_key: str, http: AsyncClient, lnbits_url: str, data_folder: str, priv_key: str):
     client = LnbitsClient(        
         admin_key=admin_key,
         http=http,
         lnbits_url=lnbits_url,
         data_folder=data_folder,
         bot_priv_key=priv_key,
-        nostr_relay=nostr_relay
+        # nostr_relay=nostr_relay
     )
 
     @client.event
     async def on_ready():
-        print(f"Connecting to Nostr relay(s))")
+        logging.debug('BotEventHandler::started')
         print("------")
+        ws = websocket.WebSocketApp("wss://nostr-pub.wellorder.net")
+        ws.run_forever(dispatcher=rel, reconnect=5)
+        rel.dispatch()
+        client = NostrClientConnection(relay_id="nostrbitbest", websocket=ws)
         client_accepted = await client_manager.add_client(client)
         if not client_accepted:
             return
@@ -94,51 +98,7 @@ def create_client(admin_key: str, http: AsyncClient, lnbits_url: str, data_folde
         except Exception as e:
             logger.warning(e)
             client_manager.remove_client(client)
-        # relay_manager = RelayManager(timeout=2)
-        # relay_manager.add_relay("wss://nostr-pub.wellorder.net")
-        # relay_manager.add_relay("wss://relay.damus.io")
-        # relay_manager.add_relay(client.nostr_relay)
-        # filters = FiltersList([Filters(authors=[client.bot_priv_key.public_key.hex()], limit=100)])
-        # subscription_id = uuid.uuid1().hex
-        # relay_manager.add_subscription_on_all_relays(subscription_id, filters)        
-        # relay_manager.run_sync()
-        
-           
-    # async def donate(interaction: LnbitsInteraction, amount: int, description: str):
-    #     wallet = await client.api.get_user_wallet(interaction.user)
-
-    #     await client.api.request(
-    #         "POST",
-    #         "/extensions",
-    #         extension="usermanager",
-    #         params={"userid": wallet.user, "extension": "withdraw", "active": True},
-    #     )
-
-    #     resp = await client.api.request(
-    #         method="post",
-    #         path="/links",
-    #         extension="withdraw",
-    #         key=wallet.adminkey,
-    #         json={
-    #             "title": description,
-    #             "min_withdrawable": amount,
-    #             "max_withdrawable": amount,
-    #             "uses": 1,
-    #             "wait_time": 1,
-    #             "is_unique": True,
-    #         },
-    #     )
-
-    #     await interaction.response.send_message(
-    #         embed=discord.Embed(
-    #             title="Donation",
-    #             description=f"{interaction.user.mention} is donating **{get_amount_str(amount)}**",
-    #             color=discord.Color.yellow(),
-    #         )
-    #         .add_field(name="Description", value=description)
-    #         .add_field(name="LNURL", value=resp["lnurl"], inline=False),
-    #         view=discord.ui.View().add_item(ClaimButton(lnurl=resp["lnurl"])),
-    #     )
+        # wss://bolt.bitbest.net/nostrrelay/nostrbitbest        
 
         
 
