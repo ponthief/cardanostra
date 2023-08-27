@@ -155,7 +155,7 @@ class EventHandler(ABC):
         return ret
 
     @abstractmethod
-    def do_event(self, the_client: Client, sub_id, evt: Event):
+    async def do_event(self, the_client: Client, sub_id, evt: Event):
         """
         if not self.accept_event(the_client, sub_id, evt):
             do_something

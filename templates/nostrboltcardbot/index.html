@@ -106,7 +106,7 @@
           filled
           dense
           emit-value
-          v-model.trim="cardDialog.data.cardname"
+          v-model.trim="cardDialog.data.card_name"
           label="Card Name *"
           type="text"
           placeholder="Card Name to use with Nostr Bot"
@@ -125,7 +125,7 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="cardDialog.data.uid == null || cardDialog.data.cardname == null || cardDialog.data.npub"
+            :disable="cardDialog.data.uid == null || cardDialog.data.card_name == null || cardDialog.data.npub"
             type="submit"
             >Register Card</q-btn
           >
@@ -147,7 +147,7 @@
         <q-input
           filled
           dense
-          v-model.trim="editcardDialog.data.cardname"
+          v-model.trim="editcardDialog.data.card_name"
           label="Card Name"
           placeholder="What is new card name?"
         ></q-input>
@@ -186,11 +186,20 @@
     mixins: [windowMixin],
     data: function () {
       return {
-        cards: [],        
+        cards: [],
+        cardDialog: {
+        show: false,
+        data: {          
+          uid: '',
+          card_name: '',
+          npub: ''
+        },
+        temp: {} 
+      },      
         cardsTable: {
           columns: [
             {name: 'uid', align: 'left', label: 'UID', field: 'uid'},
-            {name: 'cardname', align: 'left', label: 'Card Name', field: 'cardname'},
+            {name: 'card_name', align: 'left', label: 'Card Name', field: 'card_name'},
             {
               name: 'npub',
               align: 'left',
@@ -247,7 +256,7 @@
           .request(
             'PUT',
             '/nostrboltcardbot/api/v1/cards',
-            _.findWhere(this.g.user.wallets, {
+            _.findWhere({
               uid: this.editcardDialog.data.uid
             }).inkey,
             data
@@ -278,10 +287,10 @@
               .request(
                 'DELETE',
                 '/nostrboltcardbot/api/v1/cards/' + uid,
-                _.findWhere(self.g.user.wallets, {uid: uid}).adminkey
+                _.findWhere({uid: uid}).adminkey
               )
               .then(function (response) {
-                self.cards = _.reject(self.domain, function (obj) {
+                self.cards = _.reject(self.cards, function (obj) {
                   return obj.uid == uid
                 })
               })
@@ -294,22 +303,23 @@
         LNbits.utils.exportCSV(this.cardsTable.columns, this.cards)
       }      
     },
-    created: function () {
-      if (this.g.user.wallets.length) {
-        this.getDomains()
-        this.getAddresses()
-      }
+    getCards: function () {
+      var self = this
+
+      LNbits.api
+        .request(
+          'GET',
+          '/nostrboltcardbot/api/v1/cards'
+        )
+        .then(function (response) {
+          self.cards = response.data.map(function (obj) {
+            return mapCards(obj)
+          })
+        })        
     },
-    computed: {
-      domainOptions: function () {
-        return this.domains.map(el => {
-          return {
-            label: el.domain,
-            value: el.id
-          }
-        })
-      }
-    }
+    created: function () {     
+        this.getCards()     
+    }    
   })
 </script>
 {% endblock %}

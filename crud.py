@@ -1,8 +1,9 @@
-from typing import  Optional
+from typing import  List, Optional
 from . import db
 from .models import Card, NostrCardData, NostrBotCard
 from .models import BotSettings, CreateBotSettings, UpdateBotSettings
-
+from .helpers import normalize_public_key
+from loguru import logger
 
 async def get_nostrboltbot_settings(admin_id: str) -> Optional[BotSettings]:
     row = await db.fetchone(
@@ -50,9 +51,8 @@ async def delete_nostrboltbot_settings(admin_id: str):
     assert result.rowcount == 1, "Could not create settings"
 # crud.py is for communication with your extensions database
 # Card DB
-async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard:    
-    boltcard = await get_boltcard_by_uid(data.uid.upper())
-    assert boltcard, f"BoltCard with uid: {data.uid} not registered."
+async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard: 
+    npub_hex = normalize_public_key(data.npub)       
     await db.execute(
         """
         INSERT INTO nostrboltcardbot.cards (            
@@ -60,12 +60,12 @@ async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard:
             npub,
             card_name            
         )
-            VALUES (?, ?, ?,)
+            VALUES (?, ?, ?)
         """,
         (            
             data.uid.upper(), 
-            data.npub,                       
-            data.cardname,            
+            npub_hex,                       
+            data.card_name,            
         ),
     )
     card = await get_nostrbotcard_by_uid(data.uid.upper())
@@ -83,6 +83,23 @@ async def get_nostrbotcard_by_uid(uid: str) -> Optional[NostrBotCard]:
 
     return NostrBotCard.parse_obj(card)
 
+
+async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrBotCard]:    
+    row = await db.fetchone(
+        "SELECT * FROM nostrboltcardbot.cards WHERE card_name = ? AND npub = ?", (card_name, npub)
+    )
+    if not row:        
+        return None    
+    card = dict(**row)
+    logger.debug(NostrBotCard.parse_obj(card))
+    return NostrBotCard.parse_obj(card)
+
+
+async def get_cards() -> List[NostrBotCard]:    
+    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.cards")
+    return [NostrBotCard(**row) for row in rows]
+
+
 async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:    
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
@@ -94,15 +111,17 @@ async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:
 
 async def delete_nostrbot_card(uid: str) -> None:
     # Delete cards
-    await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid,))
+    await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper(),))
+
 
 async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
+    logger.debug(uid.upper())
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper(),)
+        "SELECT * FROM boltcards.cards WHERE uid = ?", (uid.upper(),)
     )
     if not row:
         return None
 
     card = dict(**row)
 
-    return Card.parse_obj(card)    
+    return Card.parse_obj(card)

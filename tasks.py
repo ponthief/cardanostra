@@ -1,4 +1,4 @@
-import logging
+import time
 import asyncio
 from datetime import datetime
 from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, ClientPool
@@ -16,6 +16,12 @@ from lnbits.settings import settings
 from . import nostrboltcardbot_ext
 from lnbits.extensions.nostrboltcardbot.crud import get_all_nostrboltbot_settings
 from lnbits.extensions.nostrboltcardbot.models import BotSettings
+from .crud import (       
+    get_nostrbotcard_by_uid,    
+    update_nostrbot_card,
+    check_card_owned_by_npub,
+    get_boltcard_by_uid
+)
 
 http_client: Optional[httpx.AsyncClient] = None
 #DEFAULT_RELAY = 'wss://nostr-pub.wellorder.net,wss://nos.lol'
@@ -49,7 +55,7 @@ class BotEventHandler(EventHandler):
            # ['e', src_evt.id, 'reply']
         ]
 
-    def do_event(self, the_client: Client, sub_id: str, evt: [Event]):
+    async def do_event(self, the_client: Client, sub_id: str, evt: [Event]):
         # replying to ourself would be bad! also call accept_event
         # to stop us replying mutiple times if we see the same event from different relays
         if evt.pub_key == self._as_user.public_key_hex() or \
@@ -57,7 +63,7 @@ class BotEventHandler(EventHandler):
             return
 
         logger.debug('BotEventHandler::do_event - received event %s' % evt)
-        prompt_text, response_text = self.handle_bot_command(evt)
+        prompt_text, response_text = await self.handle_bot_command(evt)
         # logger.debug('BotEventHandler::do_event - prompt = %s' % prompt_text)
         logger.debug('BotEventHandler::do_event - response = %s' % response_text)
 
@@ -87,7 +93,7 @@ class BotEventHandler(EventHandler):
 
     def menu(self):
         return """ ***** BoltCard Bot Commander *****
-/help - lists available commands
+/help - shows this menu
 /freeze <card_name> - disables card
 /enable <card_name> - (re)enables card
 /get <card_name> - shows card settings
@@ -95,23 +101,32 @@ class BotEventHandler(EventHandler):
 /day_max <card_name> <sats> - sets new daily max
 """
 
+    async def get_card_details(self, card_name, pub_key):
+        logger.debug(card_name, pub_key)                  
+        the_card = await check_card_owned_by_npub(card_name, pub_key)
+        #logger.debug(f"result: {task}")
+        if the_card is not None:
+            bcard = await get_boltcard_by_uid(the_card.uid)
+            return bcard.card_name
+        return 'No registered card for this npub'
 
-    def handle_bot_command(self, the_event):        
+    async def handle_bot_command(self, the_event):        
         prompt_text = the_event.content
         if the_event.kind == Event.KIND_ENCRYPT:
             prompt_text = the_event.decrypted_content(priv_key=self._as_user.private_key_hex(),
                                                       pub_key=the_event.pub_key)
 
         # do whatever to get the response
-        # pk = the_event.pub_key
+        pk = the_event.pub_key
         # reply_n = self._replied[pk] = self._replied.get(pk, 0)+1
-        # reply_name = util_funcs.str_tails(pk)        
+        # reply_name = util_funcs.str_tails(pk) 
+        # logger.debug(reply_name)       
         match prompt_text.split():
             case ["/freeze", card_name]:
                 response_text = f'frozen {card_name}'
             
             case ["/get", card_name]:
-                response_text = f'get {card_name}'
+                response_text = await self.get_card_details(card_name, pk)
 
             case ["/enable", card_name]:
                 response_text = f'enabled {card_name}' 

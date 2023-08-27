@@ -189,10 +189,10 @@ class Client:
 
     async def _my_consumer(self, ws: aiohttp.ClientWebSocketResponse):
         while True:
-            self._on_message(await ws.receive_json())
+            await self._on_message(await ws.receive_json())
         # raise ConnectionError('Client::_my_consumer - server has closed the websocket')
 
-    def _on_message(self, message):
+    async def _on_message(self, message):
         # null/None message?
         if not message:
             return
@@ -202,7 +202,7 @@ class Client:
             if len(message) >= 1:
                 sub_id = message[1]
                 if self._read:
-                    self._do_events(sub_id, message)
+                    await self._do_events(sub_id, message)
             else:
                 logging.debug(f'Client::_on_message - not enough data in EVENT message - {message}')
 
@@ -259,7 +259,7 @@ class Client:
         except Exception as e:
             logging.debug(f'Client::_do_command error sending message {e}')
 
-    def _do_events(self, sub_id, message):
+    async def _do_events(self, sub_id, message):
         the_evt: Event
         if not self.have_sub(sub_id):
             logging.debug(
@@ -280,7 +280,7 @@ class Client:
                     the_evt = Event.from_JSON(message[2])
                     for c_handler in the_sub['handlers']:
                         try:
-                            c_handler.do_event(self, sub_id, the_evt)
+                            await c_handler.do_event(self, sub_id, the_evt)
                         except Exception as e:
                             logging.debug(f'Client::_do_events in handler {c_handler} - {e}')
 

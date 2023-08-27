@@ -8,6 +8,7 @@ from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.settings import settings
 from . import nostrboltcardbot_ext
+from loguru import logger
 
 from .crud import (
     create_nostrboltbot_settings,
@@ -18,6 +19,8 @@ from .crud import (
     delete_nostrbot_card,    
     get_nostrbotcard_by_uid,    
     update_nostrbot_card,
+    get_boltcard_by_uid,
+    get_cards
 )
 from .models import (
     BotInfo,
@@ -26,7 +29,7 @@ from .models import (
     UpdateBotSettings,
     NostrCardData
 )
-
+from .helpers import normalize_public_key
 try:
     from .tasks import  start_bot
 
@@ -40,20 +43,35 @@ except ImportError as e:
 
     can_run_bot = False
 
+
+def validate_card(data: NostrCardData):
+    try:
+        if len(bytes.fromhex(data.uid)) != 7:
+            raise HTTPException(
+                detail="Invalid bytes for card uid.", status_code=HTTPStatus.BAD_REQUEST
+            )  
+        if normalize_public_key(data.npub) is None:    
+            raise HTTPException(
+                detail="Invalid pubkey provided.", status_code=HTTPStatus.BAD_REQUEST
+            )      
+    except Exception:
+        raise HTTPException(
+            detail="Invalid byte data provided.", status_code=HTTPStatus.BAD_REQUEST
+        )    
 # add your endpoints here
 
 
-async def require_bot_settings(
-    wallet_info: WalletTypeInfo = Depends(require_admin_key),
-):
-    settings = await get_nostrboltbot_settings(wallet_info.wallet.user)
-    if not settings:
-        raise HTTPException(status_code=400, detail="No bot created")
-    if not settings.standalone and not can_run_bot:
-        raise HTTPException(
-            status_code=400, detail="Can not run Nostr BoltCard Bot bots on this instance"
-        )
-    return settings
+# async def require_bot_settings(
+#     wallet_info: WalletTypeInfo = Depends(require_admin_key),
+# ):
+#     settings = await get_nostrboltbot_settings(wallet_info.wallet.user)
+#     if not settings:
+#         raise HTTPException(status_code=400, detail="No bot created")
+#     if not settings.standalone and not can_run_bot:
+#         raise HTTPException(
+#             status_code=400, detail="Can not run Nostr BoltCard Bot bots on this instance"
+#         )
+#     return settings
 
 
 # @nostrboltcardbot_ext.delete("/api/v1/settings", status_code=HTTPStatus.OK)
@@ -66,17 +84,44 @@ async def require_bot_settings(
 
 # # Card Control
 
-# @nostrboltcardbot_ext.post("/api/v1/registercard", status_code=HTTPStatus.CREATED)
-# async def set_card(data: NostrCardData):    
-#     return set_nostrbot_card_data(data)
+@nostrboltcardbot_ext.post("/api/v1/registercard", 
+                           status_code=HTTPStatus.CREATED,
+                           dependencies=[Depends(validate_card)])
+async def set_card(data: NostrCardData): 
+    checkBUid = await get_boltcard_by_uid(data.uid)
+    if checkBUid is None:
+        raise HTTPException(
+            detail="UID not registered in BoltCards extension. Please add card first.",
+            status_code=HTTPStatus.BAD_REQUEST,
+        ) 
+    checkUid = await get_nostrbotcard_by_uid(data.uid)
+    if checkUid:
+        raise HTTPException(
+            detail="UID already registered. Delete registered card and try again.",
+            status_code=HTTPStatus.BAD_REQUEST,
+        ) 
+    card = await set_nostrbot_card_data(data)
+    assert card, "create_card should always return a card"
+    return card      
 
 # @nostrboltcardbot_ext.post("/api/v1/cardupdate", status_code=HTTPStatus.OK)
 # async def update_card(data: NostrCardData):    
 #     return update_nostrbot_card(data)
 
-# @nostrboltcardbot_ext.delete("/api/v1/{card_uid}", status_code=HTTPStatus.OK)
-# async def delete_nostrbot_card(card_uid: str):    
-#     return delete_nostrbot_card(card_uid) 
+@nostrboltcardbot_ext.delete("/api/v1/cards/{card_uid}")
+async def delete_nostrbot_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
+    checkUid = await get_nostrbotcard_by_uid(card_uid)
+    if not checkUid:
+        raise HTTPException(
+            detail="Card does not exist.", status_code=HTTPStatus.NOT_FOUND
+        )    
+    await delete_nostrbot_card(card_uid)
+    return "", HTTPStatus.NO_CONTENT 
+
+@nostrboltcardbot_ext.get("/api/v1/cards")
+async def api_cards():   
+    logger.debug([card.dict() for card in await get_cards()])
+    return [card.dict() for card in await get_cards()]      
 # # Bot Control
 
 
