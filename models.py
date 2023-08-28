@@ -55,10 +55,26 @@ class Card(BaseModel):
     def from_row(cls, row: Row) -> "Card":
         return cls(**dict(row))
     
+
+class BCard(BaseModel):    
+    tx_limit: int
+    daily_limit: int
+    enable: bool    
+
+    def __str__(self):
+        return f'Max Tx Limit: {self.tx_limit} - Max Day Limit: {self.daily_limit}, Enabled: {self.enable}'
+    
+    
+    @classmethod
+    def from_row(cls, row: Row) -> "BCard":
+        return cls(**dict(row))   
+
+
 class NostrCardData(BaseModel):    
     uid: str = Query(...)
     npub: str = Query(...)  
     card_name: str = Query(...)
+
 
 class NostrBotCard(BaseModel):    
     uid: str

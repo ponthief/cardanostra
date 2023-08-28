@@ -1,4 +1,4 @@
-import time
+import json
 import asyncio
 from datetime import datetime
 from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, ClientPool
@@ -20,7 +20,8 @@ from .crud import (
     get_nostrbotcard_by_uid,    
     update_nostrbot_card,
     check_card_owned_by_npub,
-    get_boltcard_by_uid
+    get_boltcard_by_uid,
+    update_boltcard
 )
 
 http_client: Optional[httpx.AsyncClient] = None
@@ -107,9 +108,24 @@ class BotEventHandler(EventHandler):
         #logger.debug(f"result: {task}")
         if the_card is not None:
             bcard = await get_boltcard_by_uid(the_card.uid)
-            return bcard.card_name
-        return 'No registered card for this npub'
+            if bcard is None:
+               return 'Card UID must exist in BoltCards extension.'           
+            logger.debug(str(bcard))
+            return str(bcard)
+        return f'{card_name} not found. You must register it first on Lnbits.'
+    
 
+    async def change_card_settings(self, card_name, pub_key, **csettings):                         
+        the_card = await check_card_owned_by_npub(card_name, pub_key)        
+        if the_card is not None:
+            bcard = await get_boltcard_by_uid(the_card.uid)
+            if bcard is None:
+               return 'Card UID must exist in BoltCards extension.'
+            updt_bcard = await update_boltcard(the_card.uid, **csettings)          
+            logger.debug(str(updt_bcard))
+            return str(updt_bcard)
+        return f'{card_name} not found. You must register it first on Lnbits.'
+    
     async def handle_bot_command(self, the_event):        
         prompt_text = the_event.content
         if the_event.kind == Event.KIND_ENCRYPT:
@@ -122,20 +138,20 @@ class BotEventHandler(EventHandler):
         # reply_name = util_funcs.str_tails(pk) 
         # logger.debug(reply_name)       
         match prompt_text.split():
-            case ["/freeze", card_name]:
-                response_text = f'frozen {card_name}'
+            case ["/freeze", card_name]:                
+                response_text = await self.change_card_settings(card_name, pk, enable=False)
             
             case ["/get", card_name]:
                 response_text = await self.get_card_details(card_name, pk)
 
-            case ["/enable", card_name]:
-                response_text = f'enabled {card_name}' 
+            case ["/enable", card_name]:                
+                response_text = await self.change_card_settings(card_name, pk, enable=True)
 
-            case ["/tx_max", card_name, sats]:
-                response_text = f'tx max {card_name} {sats}'  
+            case ["/tx_max", card_name, sats]:                
+                response_text = await self.change_card_settings(card_name, pk, tx_limit=sats)  
 
-            case ["/day_max", card_name, sats]:
-                response_text = f'day max {card_name} {sats}'          
+            case ["/day_max", card_name, sats]:                
+                response_text = await self.change_card_settings(card_name, pk, daily_limit=sats)          
 
             case _: response_text = self.menu()
         #response_text = self.menu() #f'hey {reply_name} this is reply to you'

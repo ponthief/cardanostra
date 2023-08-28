@@ -1,6 +1,6 @@
 from typing import  List, Optional
 from . import db
-from .models import Card, NostrCardData, NostrBotCard
+from .models import Card, NostrCardData, NostrBotCard, BCard
 from .models import BotSettings, CreateBotSettings, UpdateBotSettings
 from .helpers import normalize_public_key
 from loguru import logger
@@ -117,11 +117,22 @@ async def delete_nostrbot_card(uid: str) -> None:
 async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
     logger.debug(uid.upper())
     row = await db.fetchone(
-        "SELECT * FROM boltcards.cards WHERE uid = ?", (uid.upper(),)
-    )
+        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper(),)
+    )    
     if not row:
         return None
 
     card = dict(**row)
+    logger.debug(BCard.parse_obj(card))
+    return BCard.parse_obj(card)
 
-    return Card.parse_obj(card)
+async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:  
+    logger.debug('try update')  
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+    logger.debug(q)
+    await db.execute(
+        f"UPDATE boltcards.cards SET {q} WHERE uid = ?",
+        (*kwargs.values(), uid.upper()),
+    )    
+    row = await db.fetchone("SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper(),))
+    return BCard(**row) if row else None
