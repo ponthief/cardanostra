@@ -21,7 +21,9 @@ from .crud import (
     update_nostrbot_card,
     check_card_owned_by_npub,
     get_boltcard_by_uid,
-    update_boltcard
+    update_boltcard,
+    get_npub_cards,
+    insert_card
 )
 
 http_client: Optional[httpx.AsyncClient] = None
@@ -52,8 +54,7 @@ class BotEventHandler(EventHandler):
             minimal tagging just that we're replying to sec_evt and tag in the creater pk so they see our reply
         """
         return [
-            ['p', src_evt.pub_key]
-           # ['e', src_evt.id, 'reply']
+            ['p', src_evt.pub_key]          
         ]
 
     async def do_event(self, the_client: Client, sub_id: str, evt: [Event]):
@@ -100,19 +101,18 @@ class BotEventHandler(EventHandler):
 /get <card_name> - shows card settings
 /tx_max <card_name> <sats> - sets new tx maximum
 /day_max <card_name> <sats> - sets new daily max
+/list - displays all the cards registered to pub key
+/register <uid> <card_name> - register new card
 """
 
-    async def get_card_details(self, card_name, pub_key):
-        logger.debug(card_name, pub_key)                  
-        the_card = await check_card_owned_by_npub(card_name, pub_key)
-        #logger.debug(f"result: {task}")
+    async def get_card_details(self, card_name, pub_key):                         
+        the_card = await check_card_owned_by_npub(card_name, pub_key)        
         if the_card is not None:
             bcard = await get_boltcard_by_uid(the_card.uid)
             if bcard is None:
-               return 'Card UID must exist in BoltCards extension.'           
-            logger.debug(str(bcard))
+               return 'Card must be added through BoltCards extension first.'                       
             return str(bcard)
-        return f'{card_name} not found. You must register it first on Lnbits.'
+        return f'{card_name} not found. Register first via /register command.'
     
 
     async def change_card_settings(self, card_name, pub_key, **csettings):                         
@@ -120,12 +120,35 @@ class BotEventHandler(EventHandler):
         if the_card is not None:
             bcard = await get_boltcard_by_uid(the_card.uid)
             if bcard is None:
-               return 'Card UID must exist in BoltCards extension.'
-            updt_bcard = await update_boltcard(the_card.uid, **csettings)          
-            logger.debug(str(updt_bcard))
+               return 'Card must be added through BoltCards extension first.'
+            updt_bcard = await update_boltcard(the_card.uid, **csettings)            
             return str(updt_bcard)
-        return f'{card_name} not found. You must register it first on Lnbits.'
+        return f'{card_name} not found. Register first via /register command.'
     
+
+    async def list_cards_for_npub(self, pub_key):
+        card_names = await get_npub_cards(pub_key)
+        if card_names is None:
+            return 'No BoltCards found. Register first via /register command.'
+        return f'Registered cards: {card_names}'
+    
+    async def get_uid_len(self, uid):
+        return await len(bytes.fromhex(uid))
+    
+    async def register_card(self, uid, card_name, pub_key):                
+        # uid_len = await self.get_uid_len(uid)
+        # if uid_len != 7:
+        #     return f'{uid} is not valid card UID.'
+        card = await get_nostrbotcard_by_uid(uid)
+        if card is not None:
+            return 'Nothing to do. Card already registered.'        
+        logger.debug("valid uid") 
+        await insert_card(uid.upper(), pub_key, card_name)
+        card = await get_nostrbotcard_by_uid(uid)
+        if card is None:
+            return 'Failed to register card.'
+        return "Card successfully registered."
+
     async def handle_bot_command(self, the_event):        
         prompt_text = the_event.content
         if the_event.kind == Event.KIND_ENCRYPT:
@@ -151,7 +174,13 @@ class BotEventHandler(EventHandler):
                 response_text = await self.change_card_settings(card_name, pk, tx_limit=sats)  
 
             case ["/day_max", card_name, sats]:                
-                response_text = await self.change_card_settings(card_name, pk, daily_limit=sats)          
+                response_text = await self.change_card_settings(card_name, pk, daily_limit=sats)   
+
+            case ["/list"]:
+                response_text = await self.list_cards_for_npub(pk)  
+
+            case ["/register", uid, card_name]:
+                response_text = await self.register_card(uid, card_name, pk)     
 
             case _: response_text = self.menu()
         #response_text = self.menu() #f'hey {reply_name} this is reply to you'

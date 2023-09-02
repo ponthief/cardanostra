@@ -51,8 +51,7 @@ async def delete_nostrboltbot_settings(admin_id: str):
     assert result.rowcount == 1, "Could not create settings"
 # crud.py is for communication with your extensions database
 # Card DB
-async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard: 
-    npub_hex = normalize_public_key(data.npub)       
+async def insert_card(uid, npub, card_name):
     await db.execute(
         """
         INSERT INTO nostrboltcardbot.cards (            
@@ -63,12 +62,15 @@ async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard:
             VALUES (?, ?, ?)
         """,
         (            
-            data.uid.upper(), 
-            npub_hex,                       
-            data.card_name,            
+            uid, 
+            npub,                       
+            card_name,            
         ),
     )
-    card = await get_nostrbotcard_by_uid(data.uid.upper())
+async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard: 
+    npub_hex = normalize_public_key(data.npub) 
+    insert_card(data.uid.upper(), npub_hex, data.card_name)    
+    card = await get_nostrbotcard_by_uid(data.uid)
     assert card, "Newly created card couldn't be retrieved"
     return card
 
@@ -90,10 +92,17 @@ async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrB
     )
     if not row:        
         return None    
-    card = dict(**row)
-    logger.debug(NostrBotCard.parse_obj(card))
+    card = dict(**row)    
     return NostrBotCard.parse_obj(card)
 
+async def get_npub_cards(npub: str) -> Optional[list]:    
+    rows = await db.fetchall(
+        "SELECT card_name FROM nostrboltcardbot.cards WHERE npub = ?", (npub)
+    )
+    if not rows:        
+        return None         
+    cards = [' '.join(card) for card in rows]         
+    return ', '.join(cards)
 
 async def get_cards() -> List[NostrBotCard]:    
     rows = await db.fetchall("SELECT * FROM nostrboltcardbot.cards")
@@ -122,8 +131,7 @@ async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
     if not row:
         return None
 
-    card = dict(**row)
-    logger.debug(BCard.parse_obj(card))
+    card = dict(**row)    
     return BCard.parse_obj(card)
 
 async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:  
