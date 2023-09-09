@@ -18,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Nostr BoltCard Accounts</h5>
+            <h5 class="text-subtitle1 q-my-none">Accounts</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -76,7 +76,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">Nostr Relays</h5>
+            <h5 class="text-subtitle1 q-my-none">Relays</h5>
           </div>
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
@@ -350,6 +350,7 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
+  Vue.component(VueQrcode.name, VueQrcode)
   var mapCard = function (obj) {
     obj.time = Quasar.utils.date.formatDate(
       new Date(obj.time * 1000),
@@ -525,7 +526,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/nostrboltcardbot/api/v1/cards',
+            '/nostrboltcardbot/api/v1/cards?usr=' + this.g.user.id,
             _.findWhere({
               uid: this.editcardDialog.data.uid
             }).inkey,
@@ -571,20 +572,20 @@
       },
       exportCSV: function () {
         LNbits.utils.exportCSV(this.cardsTable.columns, this.cards)
-      }      
-    },
+      },
     getCards: function () {
       var self = this
 
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/cards'
+          '/nostrboltcardbot/api/v1/cards?usr=' + this.g.user.id,
+          this.g.user.wallets[0].adminkey          
         )
-        .then(function (response) {
+        .then(function (response) {          
           self.cards = response.data.map(function (obj) {
-            return mapCards(obj)
-          })
+            return mapCard(obj)
+          })          
         })        
     },
     getAccounts: function () {
@@ -593,11 +594,12 @@
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/accounts'
+          '/nostrboltcardbot/api/v1/accounts?usr=' + this.g.user.id,
+          this.g.user.wallets[0].adminkey
         )
         .then(function (response) {
           self.accounts = response.data.map(function (obj) {
-            return mapCards(obj)
+            return mapCard(obj)
           })
         })        
     },
@@ -607,19 +609,23 @@
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/relays'
+          '/nostrboltcardbot/api/v1/relays?usr=' + this.g.user.id,
+          this.g.user.wallets[0].adminkey
         )
         .then(function (response) {
           self.relays = response.data.map(function (obj) {
-            return mapCards(obj)
+            return mapCard(obj)
           })
         })        
     },
-    created: function () {     
-        this.getCards(),
-        this.getAccounts(),
-        this.getRelays()     
-    }    
+  },
+    created: function () {  
+        var self = this   
+        console.log("called");      
+        this.getCards()
+        this.getAccounts()
+        this.getRelays()         
+    }       
   })
 </script>
 {% endblock %}

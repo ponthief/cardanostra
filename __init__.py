@@ -37,4 +37,4 @@ def nostrboltcardbot_start():
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     scheduled_tasks.append(task1)
     task2 = loop.create_task(catch_everything_and_restart(check_reconnect))
-    scheduled_tasks.append(task2)     
+    scheduled_tasks.append(task2)

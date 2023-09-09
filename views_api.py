@@ -3,9 +3,10 @@
 # add your dependencies here
 
 from http import HTTPStatus
-from fastapi import Depends, Query
+from fastapi import Depends
 from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, require_admin_key
+from lnbits.decorators import check_admin
 from lnbits.helpers import urlsafe_short_hash
 from . import nostrboltcardbot_ext
 from loguru import logger
@@ -19,7 +20,8 @@ from .crud import (
     update_nostrbot_card,
     get_boltcard_by_uid,
     get_cards,
-    get_nostr_accounts    
+    get_nostr_accounts,
+    get_relays    
 )
 from .models import (
     # BotInfo,
@@ -130,18 +132,20 @@ async def delete_nostrbot_card(card_uid: str, wallet: WalletTypeInfo = Depends(r
     await delete_nostrbot_card(card_uid)
     return "", HTTPStatus.NO_CONTENT 
 
-@nostrboltcardbot_ext.get("/api/v1/cards")
+@nostrboltcardbot_ext.get("/api/v1/cards", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)])
 async def api_cards():   
     logger.debug([card.dict() for card in await get_cards()])
     return [card.dict() for card in await get_cards()]      
 # # Bot Accounts
 
 
-@nostrboltcardbot_ext.get("/api/v1/accounts")
+@nostrboltcardbot_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)])
 async def api_accounts():   
-    logger.debug([account.dict() for account in await get_nostr_accounts()])
     return [account.dict() for account in await get_nostr_accounts()] 
 
+@nostrboltcardbot_ext.get("/api/v1/relays", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)])
+async def api_relays():       
+    return [relay.dict() for relay in await get_relays()] 
 
 @nostrboltcardbot_ext.post(
     "/api/v1/account",
