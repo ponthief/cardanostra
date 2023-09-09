@@ -1,54 +1,84 @@
-from typing import  List, Optional
+from typing import List, Optional
 from . import db
-from .models import Card, NostrCardData, NostrBotCard, BCard
-from .models import BotSettings, CreateBotSettings, UpdateBotSettings
+from .models import Card, NostrCardData, NostrBotCard, BCard, NostrAccount
+
 from .helpers import normalize_public_key
 from loguru import logger
 
-async def get_nostrboltbot_settings(admin_id: str) -> Optional[BotSettings]:
+from .models import RelayData,  NostrAccountData
+
+
+async def get_relays() -> List[RelayData]:
+    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.relays")
+    return [RelayData(**row) for row in rows]
+
+
+async def get_relay_by_id(id: str) -> Optional[RelayData]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.cardbot WHERE admin = ?", (admin_id,)
+        "SELECT * FROM nostrboltcardbot.relays WHERE id = ?", (id,)
     )
-    return BotSettings(**row) if row else None
+    if not row:
+        return None
 
-async def get_all_nostrboltbot_settings() -> list[BotSettings]:
-    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.cardbot")
-    return [BotSettings(**row) for row in rows]
+    relay = dict(**row)
+
+    return RelayData.parse_obj(relay)
 
 
-async def create_nostrboltbot_settings(data: CreateBotSettings, admin_id: str):
+async def add_relay(relay: RelayData) -> None:
     await db.execute(
         f"""
-        INSERT INTO nostrboltcardbot.cardbot (admin,privkey,relay, standalone) 
-        VALUES (?, ?, ?, ?)        
+        INSERT INTO nostrboltcardbot.relays (
+            id,
+            url            
+        )
+        VALUES (?, ?)
         """,
-        (admin_id, data.privkey, data.relay, data.standalone),
+        (relay.id, relay.url),
     )
-    return await get_nostrboltbot_settings(admin_id)
+    relay = await get_relay_by_id(relay.id)
+    assert relay, "Nostr Relay couldn't be retrieved"
+    return relay
 
-async def update_nostrboltbot_settings(data: UpdateBotSettings, admin_id: str):
-    updates = []
-    values = []
-    for key, val in data.dict(exclude_unset=True).items():
-        updates.append(f"{key} = ?")
-        values.append(val)
-    values.append(admin_id)
+
+async def delete_relay(relay: RelayData) -> None:
+    await db.execute("DELETE FROM nostrboltcardbot.relays WHERE url = ?", (relay.url,))
+
+
+async def get_nostr_accounts() -> List[NostrAccount]:
+    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.accounts")
+    return [NostrAccount(**row) for row in rows]
+
+
+async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
+    #domain_id = urlsafe_short_hash()
     await db.execute(
         f"""
-        UPDATE nostrboltcardbot.cardbot 
-        SET {", ".join(updates)}
-        WHERE admin = ?
+        INSERT INTO nostrboltcardbot.accounts (
+            id,
+            nsec            
+        )
+        VALUES (?, ?)
         """,
-        values,
+        (account.id, account.nsec),
     )
-    return await get_nostrboltbot_settings(admin_id)
+    account = await get_account_by_id(account.id)
+    assert account, "Newly created Nostr account couldn't be retrieved"
+    return account
 
 
-async def delete_nostrboltbot_settings(admin_id: str):
-    result = await db.execute(
-        "DELETE FROM nostrboltcardbot.cardbot WHERE admin = ?", (admin_id,)
+async def get_account_by_id(id: str) -> Optional[NostrAccount]:
+    row = await db.fetchone(
+        "SELECT * FROM nostrboltcardbot.accounts WHERE id = ?", (id,)
     )
-    assert result.rowcount == 1, "Could not create settings"
+    if not row:
+        return None
+
+    account = dict(**row)
+
+    return NostrAccount.parse_obj(account)
+
+
 # crud.py is for communication with your extensions database
 # Card DB
 async def insert_card(uid, npub, card_name):
@@ -67,12 +97,15 @@ async def insert_card(uid, npub, card_name):
             card_name,            
         ),
     )
+
+
 async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard: 
     npub_hex = normalize_public_key(data.npub) 
-    insert_card(data.uid.upper(), npub_hex, data.card_name)    
+    await insert_card(data.uid.upper(), npub_hex, data.card_name)    
     card = await get_nostrbotcard_by_uid(data.uid)
     assert card, "Newly created card couldn't be retrieved"
     return card
+
 
 async def get_nostrbotcard_by_uid(uid: str) -> Optional[NostrBotCard]:
     row = await db.fetchone(
@@ -94,6 +127,7 @@ async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrB
         return None    
     card = dict(**row)    
     return NostrBotCard.parse_obj(card)
+
 
 async def get_npub_cards(npub: str) -> Optional[list]:    
     rows = await db.fetchall(

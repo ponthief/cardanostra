@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "nostrboltcardbot"
+version = "0.1.0"
+description = "Nostr BoltCard Bot Extension"
+authors = ["Ponthief"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.8.5"
+cachetools = "^5.3.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

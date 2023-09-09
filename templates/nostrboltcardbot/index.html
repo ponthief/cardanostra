@@ -3,13 +3,133 @@
 <div class="row q-col-gutter-md">
   <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
-      <q-card-section>        
-        <q-btn unelevated color="primary" @click="cardDialog.show = true"
-          >Register Existing BoltCard</q-btn
+      <q-card-section>   
+        <q-btn unelevated color="primary" @click="accountDialog.show = true"
+          >Add Nostr Bot Account</q-btn>            
+        <q-btn unelevated color="primary" @click="relayDialog.show = true"
+          >Add Nostr Relay</q-btn
         >
+        <q-btn unelevated color="primary" @click="cardDialog.show = true"
+        >Register Existing BoltCard</q-btn
+      >
       </q-card-section>
     </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Nostr BoltCard Accounts</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="accounts"
+          row-key="id"
+          :columns="accountsTable.columns"
+          :pagination.sync="accountsTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
 
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>                
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="delete"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="deleteAccount(props.row.id)"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="edit"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="editAccount(props.row.id)"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
+    <q-card>
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">Nostr Relays</h5>
+          </div>
+          <div class="col-auto">
+            <q-btn flat color="grey" @click="exportCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          dense
+          flat
+          :data="relays"
+          row-key="id"
+          :columns="relaysTable.columns"
+          :pagination.sync="relaysTable.pagination"
+        >
+          {% raw %}
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th auto-width></q-th>
+              <q-th v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.label }}
+              </q-th>
+              <q-th auto-width></q-th>
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td auto-width>                
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="delete"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="deleteRelay(props.row.id)"
+                ></q-btn>
+                <q-btn
+                  unelevated
+                  dense
+                  size="xs"
+                  icon="edit"
+                  :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
+                  @click="editRelay(props.row.id)"
+                ></q-btn>
+              </q-td>
+              <q-td v-for="col in props.cols" :key="col.name" :props="props">
+                {{ col.value }}
+              </q-td>
+            </q-tr>
+          </template>
+          {% endraw %}
+        </q-table>
+      </q-card-section>
+    </q-card>
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
@@ -78,7 +198,7 @@
         </h6>
         <p>
           <strong
-            >Allow users with BoltCards to manage them via Nostr
+            >Allow BoltCard managament via Nostr account
             bot</strong
           >
         </p>
@@ -89,6 +209,64 @@
       </q-card-section>
     </q-card>
   </div>
+
+  <q-dialog v-model="accountDialog.show" position="top" @hide="closeaccountDialog">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="saveAccount" class="q-gutter-md">
+        <q-input
+          filled
+          dense     
+          emit-value     
+          v-model.trim="accountDialog.data.nsec"        
+          type="text"
+          label="Nostr Account Nsec *"
+          placeholder="What is Nostr Bot Account Private Key?"
+        ></q-input>                
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="accountDialog.data.nsec == null"
+            type="submit"
+            >Add Nostr Bot Account</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+  
+  <q-dialog v-model="relayDialog.show" position="top" @hide="closerelayDialog">
+    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+      <q-form @submit="saveRelay" class="q-gutter-md">
+        <q-input
+          filled
+          dense     
+          emit-value     
+          v-model.trim="relayDialog.data.url"        
+          type="text"
+          label="Relay URL (wss://) *"
+          placeholder="Relay URL address to connect?"
+        ></q-input>                
+
+        <div class="row q-mt-lg">
+          <q-btn
+            unelevated
+            color="primary"
+            :disable="relayDialog.data.url == null"
+            type="submit"
+            >Add Relay</q-btn
+          >
+          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
 
   <q-dialog v-model="cardDialog.show" position="top" @hide="closecardDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
@@ -187,15 +365,51 @@
     data: function () {
       return {
         cards: [],
+        accounts: [],
+        relays: [],
+        accountDialog: {
+        show: false,
+        data: {
+          id: '',                    
+          nsec:''
+        },
+        temp: {}
+      },
+        relayDialog: {
+        show: false,
+        data: { 
+          id:'',                   
+          url:''
+        },
+        temp: {}
+      },
         cardDialog: {
         show: false,
         data: {          
           uid: '',
           card_name: '',
-          npub: ''
-        },
+          npub: ''          
+        },        
         temp: {} 
-      },      
+      },   
+      accountsTable: {
+          columns: [            
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},
+            {name: 'nsec', align: 'left', label: 'Account', field: 'nsec'}
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }, 
+        relaysTable: {
+          columns: [   
+            {name: 'id', align: 'left', label: 'ID', field: 'id'},         
+            {name: 'url', align: 'left', label: 'URL', field: 'url'}            
+          ],
+          pagination: {
+            rowsPerPage: 10
+          }
+        }, 
         cardsTable: {
           columns: [
             {name: 'uid', align: 'left', label: 'UID', field: 'uid'},
@@ -205,8 +419,7 @@
               align: 'left',
               label: 'Pubkey',
               field: 'npub'
-            },            
-            {name: 'time', align: 'left', label: 'Registered At', field: 'time'}
+            }
           ],
           pagination: {
             rowsPerPage: 10
@@ -219,14 +432,71 @@
         editcardDialog: {
           show: false,
           data: {}
-        }        
+        },
+        accountDialog: {
+          show: false,
+          data: {}
+        }, 
+        relayDialog: {
+          show: false,
+          data: {}
+        },      
       }
     },
-    methods: {     
+    methods: {   
+      closeaccountDialog: function () {
+        this.accountDialog.data = {}
+      },
+      
+      closerelayDialog: function () {
+        this.relayDialog.data = {}
+      },
+
       closecardDialog: function () {
         this.cardDialog.data = {}
       },      
       
+      saveAccount: function () {
+        var data = this.accountDialog.data
+        var self = this
+
+        LNbits.api
+          .request(
+            'POST',
+            '/nostrboltcardbot/api/v1/account',          
+              _.inkey,
+            data
+          )
+          .then(function (response) {
+            self.accounts.push(mapCard(response.data))            
+            self.accountDialog.show = false
+            self.accountDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
+      saveRelay: function () {
+        var data = this.relayDialog.data
+        var self = this
+
+        LNbits.api
+          .request(
+            'POST',
+            '/nostrboltcardbot/api/v1/relay',          
+              _.inkey,
+            data
+          )
+          .then(function (response) {
+            self.relays.push(mapCard(response.data))
+
+            self.relayDialog.show = false
+            self.relayDialog.data = {}
+          })
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       saveCard: function () {
         var data = this.cardDialog.data
         var self = this
@@ -234,7 +504,7 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/registercard',          
+            '/nostrboltcardbot/api/v1/register',          
               _.inkey,
             data
           )
@@ -317,8 +587,38 @@
           })
         })        
     },
+    getAccounts: function () {
+      var self = this
+
+      LNbits.api
+        .request(
+          'GET',
+          '/nostrboltcardbot/api/v1/accounts'
+        )
+        .then(function (response) {
+          self.accounts = response.data.map(function (obj) {
+            return mapCards(obj)
+          })
+        })        
+    },
+    getRelays: function () {
+      var self = this
+
+      LNbits.api
+        .request(
+          'GET',
+          '/nostrboltcardbot/api/v1/relays'
+        )
+        .then(function (response) {
+          self.relays = response.data.map(function (obj) {
+            return mapCards(obj)
+          })
+        })        
+    },
     created: function () {     
-        this.getCards()     
+        this.getCards(),
+        this.getAccounts(),
+        this.getRelays()     
     }    
   })
 </script>

@@ -6,42 +6,41 @@ from http import HTTPStatus
 from fastapi import Depends, Query
 from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, require_admin_key
-from lnbits.settings import settings
+from lnbits.helpers import urlsafe_short_hash
 from . import nostrboltcardbot_ext
 from loguru import logger
 
-from .crud import (
-    create_nostrboltbot_settings,
-    delete_nostrboltbot_settings,
-    get_nostrboltbot_settings,
-    update_nostrboltbot_settings,
+from .crud import (   
+    add_nostr_account,
+    add_relay,
     set_nostrbot_card_data,
     delete_nostrbot_card,    
     get_nostrbotcard_by_uid,    
     update_nostrbot_card,
     get_boltcard_by_uid,
-    get_cards
+    get_cards,
+    get_nostr_accounts    
 )
 from .models import (
-    BotInfo,
-    BotSettings,
-    CreateBotSettings,    
-    UpdateBotSettings,
-    NostrCardData
+    # BotInfo,
+    # BotSettings,
+    # CreateBotSettings,    
+    # UpdateBotSettings,
+    NostrCardData,
+    NostrAccount,
+    RelayData
 )
-from .helpers import normalize_public_key
-try:
-    from .tasks import  start_bot
+from .helpers import normalize_public_key, validate_private_key
+# try:
+#     from .tasks import  start_bot
 
-    can_run_bot = True
-except ImportError as e:    
+#     can_run_bot = True
+# except ImportError as e:    
 
-    async def start_bot(bot_settings: BotSettings):
-        return None    
+#     async def start_bot():
+#         return None    
 
-    raise
-
-    can_run_bot = False
+#     raise    
 
 
 def validate_card(data: NostrCardData):
@@ -57,7 +56,20 @@ def validate_card(data: NostrCardData):
     except Exception:
         raise HTTPException(
             detail="Invalid byte data provided.", status_code=HTTPStatus.BAD_REQUEST
-        )    
+        )  
+    
+
+def validate_account(data: NostrAccount):
+    try:        
+        if not validate_private_key(data.nsec):    
+            raise HTTPException(
+                detail="Invalid private key provided.", status_code=HTTPStatus.BAD_REQUEST
+            )      
+    except Exception:
+        raise HTTPException(
+            detail="Invalid private key provided.", status_code=HTTPStatus.BAD_REQUEST
+        )
+
 # add your endpoints here
 
 
@@ -84,7 +96,7 @@ def validate_card(data: NostrCardData):
 
 # # Card Control
 
-@nostrboltcardbot_ext.post("/api/v1/registercard", 
+@nostrboltcardbot_ext.post("/api/v1/register", 
                            status_code=HTTPStatus.CREATED,
                            dependencies=[Depends(validate_card)])
 async def set_card(data: NostrCardData): 
@@ -122,32 +134,82 @@ async def delete_nostrbot_card(card_uid: str, wallet: WalletTypeInfo = Depends(r
 async def api_cards():   
     logger.debug([card.dict() for card in await get_cards()])
     return [card.dict() for card in await get_cards()]      
-# # Bot Control
+# # Bot Accounts
 
+
+@nostrboltcardbot_ext.get("/api/v1/accounts")
+async def api_accounts():   
+    logger.debug([account.dict() for account in await get_nostr_accounts()])
+    return [account.dict() for account in await get_nostr_accounts()] 
+
+
+@nostrboltcardbot_ext.post(
+    "/api/v1/account",
+    description="Add new nostr account",
+    status_code=HTTPStatus.OK,
+    dependencies=[Depends(validate_account)]
+)
+async def api_add_nostr_account(
+    data: NostrAccount
+):
+    data.id = urlsafe_short_hash()
+    account = await add_nostr_account(data)    
+    
+    if not account:
+        raise HTTPException(
+            detail="Nostr account not added.", status_code=HTTPStatus.NOT_FOUND
+        )        
+    return "", HTTPStatus.NO_CONTENT
+
+@nostrboltcardbot_ext.post(
+    "/api/v1/relay",
+    description="Add new Relay",
+    status_code=HTTPStatus.OK
+)
+async def api_add_relay(
+    data: RelayData
+):
+    data.id = urlsafe_short_hash()
+    relay = await add_relay(data)    
+    
+    if not relay:
+        raise HTTPException(
+            detail="Nostr Relay not added.", status_code=HTTPStatus.NOT_FOUND
+        )        
+    return "", HTTPStatus.NO_CONTENT
 
 # @nostrboltcardbot_ext.post(
-#     "/api/v1/startnewbot",
-#     description="Create and start a new bot (only one per user)",
+#     "api/v1/relay",
+#     description="Add new relay",
 #     status_code=HTTPStatus.OK,
-#     response_model=BotInfo,
+#     dependencies=[Depends(validate_account)]
 # )
-# async def api_create_bot(
-#     data: CreateBotSettings, wallet_type: WalletTypeInfo = Depends(require_admin_key)
+# async def api_add_relay(
+#     data: NostrRelayData
 # ):
-#     bot_settings = await create_nostrboltbot_settings(data, wallet_type.wallet.user)
-#     if not bot_settings.standalone:
-#         if wallet_type.wallet.id == settings.super_user:
-#             client = await start_bot(bot_settings)
-#         else:
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail="Only the super user can host directly on the instance",
-#             )
-#     else:
-#         client = None
-#     return BotInfo.from_client(bot_settings, client)
+#     bot_settings = await add_relay(data)    
+    # if wallet_type.wallet.id == settings.super_user:
+    #         client = await start_bot(bot_settings)
+    # else:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail="Only the super user can add new relay",
+    #     )    
+    # return BotInfo.from_client(bot_settings, client)
 
 
+# async def api_add_relay(
+#     data: NostrAccountData
+# ):
+#     bot_settings = await add_relay(data)    
+#     # if wallet_type.wallet.id == settings.super_user:
+#     #         client = await start_bot(bot_settings)
+#     # else:
+#     #     raise HTTPException(
+#     #         status_code=400,
+#     #         detail="Only the super user can add new relay",
+#     #     )    
+#     # return BotInfo.from_client(bot_settings, client)
 # @nostrboltcardbot_ext.delete(
 #     "/api/v1/delete",
 #     status_code=HTTPStatus.OK,

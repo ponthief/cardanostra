@@ -10,12 +10,7 @@ from typing import Optional
 from loguru import logger
 import httpx
 
-from lnbits.core import get_user
-from lnbits.settings import settings
 
-from . import nostrboltcardbot_ext
-from lnbits.extensions.nostrboltcardbot.crud import get_all_nostrboltbot_settings
-from lnbits.extensions.nostrboltcardbot.models import BotSettings
 from .crud import (       
     get_nostrbotcard_by_uid,    
     update_nostrbot_card,
@@ -23,7 +18,9 @@ from .crud import (
     get_boltcard_by_uid,
     update_boltcard,
     get_npub_cards,
-    insert_card
+    insert_card,
+    get_relays,
+    get_nostr_accounts
 )
 
 http_client: Optional[httpx.AsyncClient] = None
@@ -186,46 +183,26 @@ class BotEventHandler(EventHandler):
         #response_text = self.menu() #f'hey {reply_name} this is reply to you'
 
         return prompt_text, response_text
+    
 
 
 async def start_bot():    
-    args = get_args()
-    # admin_user = await get_user(bot_settings.admin)
-    # admin_key = admin_user.wallets[0].adminkey
+    #args = get_args()    
     logger.debug(f"starting nostrboltcardbot")
     # just the keys, change to profile?
-    as_user = args['bot_account']
-
-    # relays we'll watch
-    relays = args['relays']
+    #as_user = args['bot_account']               
+    accounts = [account.nsec for account in await get_nostr_accounts()]    
+    if len(accounts) == 0:
+        raise RuntimeError("Nostr account private key must be added for Bot to start.")
+    relays = ','.join([relay.url for relay in await get_relays()])
+    if len(relays) == 0:
+        raise RuntimeError("At least 1 Nostr Relay must be added for Bot to start.")    
+    #relays = args['relays']
     last_since = LastEventHandler()
-    sub_id = None
-    # the actually clientpool obj
+    sub_id = None    
     my_clients = ClientPool(clients=relays.split(','))
-
-    # do_event of this class is called on recieving events that match teh filter we reg for
-    my_handler = BotEventHandler(as_user=as_user,
-                                  clients=my_clients)
-    # class PrintHandler(EventHandler):
-    #     def __init__(self, as_user: Keys, clients: ClientPool):
-    #         self._as_user = as_user
-    #         self._clients = clients            
-    #         super().__init__(event_acceptors=[DeduplicateAcceptor()])
-
-    #     def do_event(self, the_client: Client, sub_id: str, evt: [Event]):
-    #         if evt.pub_key == self._as_user.public_key_hex() or \
-    #             self.accept_event(the_client, sub_id, evt) is False:                
-    #             return
-    #         print_event('ON_EVENT', evt)
-
-    #my_handler = PrintHandler(as_user=as_user, clients=my_clients)
-
-    # def print_event(rec_type:str, evt: Event):
-    #     logger.debug('%s-%s:: %s - %s' % (evt.created_at.date(),
-    #                                rec_type,
-    #                                util_funcs.str_tails(evt.id),
-    #                                evt.content))
-    # called on first connect and any reconnects, registers our event listener
+    as_user = Keys(accounts[0])
+    my_handler = BotEventHandler(as_user=as_user, clients=my_clients)    
     def on_connect(the_client: Client):
         nonlocal sub_id
         sub_id = the_client.subscribe(sub_id='bot_watch',
@@ -239,13 +216,8 @@ async def start_bot():
 
     def on_eose(the_client: Client, sub_id:str, events: [Event]):
         # so newest events come in at the bottom
-        Event.sort(events, inplace=True, reverse=False)
-        # for evt in events:
-        #     print_event('EOSE', evt)
-        last_since.set_now(the_client)
-        # for evt in events:
-        #     the_client.publish(evt)
-        #     break
+        Event.sort(events, inplace=True, reverse=False)        
+        last_since.set_now(the_client)        
    
     # add the on_connect
     my_clients.set_on_connect(on_connect)
@@ -255,4 +227,12 @@ async def start_bot():
     # start the clients
     logger.debug('monitoring for events from or to account %s on relays %s' % (as_user.public_key_hex(),
                                                                         relays))
-    await my_clients.run()
+    #await my_clients.run()
+    while True:
+        try:
+            for cli in my_clients:
+                if not cli._is_connected:
+                    await cli.run()
+            await asyncio.sleep(20)                      
+        except Exception as e:
+            logger.warning(f"Cannot restart relays: '{str(e)}'.")

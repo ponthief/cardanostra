@@ -3,35 +3,67 @@ from sqlite3 import Row
 from pydantic import BaseModel
 from fastapi import Query
 from sqlite3 import Row
-from typing import Optional  
+from typing import Dict, List, Optional 
+from lnbits.helpers import urlsafe_short_hash
 
 
-class BotSettings(BaseModel):
-    admin: str  
-    privkey: str
-    relay: str  
-    standalone: bool
+class RelayStatus(BaseModel):
+    num_sent_events: Optional[int] = 0
+    num_received_events: Optional[int] = 0
+    error_counter: Optional[int] = 0
+    error_list: Optional[List] = []
+    notice_list: Optional[List] = []
 
 
-class CreateBotSettings(BaseModel): 
-    privkey: str
-    relay: str   
-    standalone: bool
+class Relay(BaseModel):
+    id: Optional[str] = None
+    url: Optional[str] = None
+    connected: Optional[bool] = None
+    connected_string: Optional[str] = None
+    status: Optional[RelayStatus] = None
+    active: Optional[bool] = None
+    ping: Optional[int] = None
+
+    def _init__(self):
+        if not self.id:
+            self.id = urlsafe_short_hash()
 
 
-class UpdateBotSettings(BaseModel):
-    privkey: str
-    relay: str    
-    standalone: Optional[bool]
+class RelayList(BaseModel):
+    __root__: List[Relay]
 
 
-class BotInfo(BotSettings):
-    online: Optional[bool]
+class RelayData(BaseModel):
+    id: Optional[str] = None
+    url: Optional[str] = None
+
+    def _init__(self):
+        if not self.id:
+            self.id = urlsafe_short_hash()
 
     @classmethod
-    def from_client(cls, settings: BotSettings):
-        return cls(**settings.dict())
+    def from_row(cls, row: Row) -> "RelayData":
+        return cls(**dict(row)) 
+
+
+class NostrAccount(BaseModel):
+    id: Optional[str] = None
+    nsec: Optional[str] = None    
+
+    def _init__(self):
+        if not self.id:
+            self.id = urlsafe_short_hash()
     
+    @classmethod
+    def from_row(cls, row: Row) -> "NostrAccount":
+        return cls(**dict(row)) 
+    
+
+class NostrAccountData(BaseModel):    
+    #id: str = Query(...)
+    nsec: str = Query(...)  
+
+
 class Card(BaseModel):
     id: str
     wallet: str
@@ -83,4 +115,4 @@ class NostrBotCard(BaseModel):
 
     @classmethod
     def from_row(cls, row: Row) -> "NostrBotCard":
-        return cls(**dict(row))     
+        return cls(**dict(row))       

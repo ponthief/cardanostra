@@ -1,5 +1,5 @@
 import asyncio
-
+from typing import List
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
 
@@ -10,6 +10,8 @@ from lnbits.tasks import catch_everything_and_restart
 db = Database("ext_nostrboltcardbot")
 
 nostrboltcardbot_ext: APIRouter = APIRouter(prefix="/nostrboltcardbot", tags=["nostrboltcardbot"])
+
+scheduled_tasks: List[asyncio.Task] = []
 
 nostrboltcardbot_static_files = [
     {
@@ -31,4 +33,5 @@ from .views_api import *  # noqa: F401,F403
 
 def nostrboltcardbot_start():
     loop = asyncio.get_event_loop()
-    loop.create_task(catch_everything_and_restart(start_bot))
+    task1 = loop.create_task(catch_everything_and_restart(start_bot))
+    scheduled_tasks.append(task1)    

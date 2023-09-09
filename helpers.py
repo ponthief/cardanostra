@@ -17,3 +17,11 @@ def normalize_public_key(pubkey: str) -> str:
         raise ValueError("Public Key is not valid hex")
     int(pubkey, 16)
     return pubkey
+
+
+def validate_private_key(priv_key: str) -> bool:
+    if not priv_key.startswith('nsec1'):
+        return False
+    if len(priv_key) != 63:
+        raise ValueError("Private Key is not valid hex")
+    return True
