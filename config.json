@@ -1,5 +1,5 @@
 {
-  "name": "Nostr Control BoltCard Bot",
+  "name": "Nostr BoltCard Bot",
   "short_description": "Control BoltCard via Nostr Bot",
 	"tile": "/nostrboltcardbot/static/bitcoin-extension.png",
   "contributors": ["ponthief"]

@@ -9,48 +9,13 @@
       <q-card-section>
         <strong>Usage</strong><br />
 
-        1. Register existing BoltCard by clicking "Register Card"\<br />
-        2. Fill the options for your BOLTCARD<br />
+        1. Add Nostr Bot account private key ('Nsec')\<br />
+        2. Add Nostr Relay for Bot account to connect to \<br />
+        3. Fill the options for your BOLTCARD<br />
         - enter UID<br />
         - enter Nostr npub from where you will control the card<br />
         - enter card Name to use when<br />
-        <br />                
-        <strong>Installation</strong><br />
-
-        In order for this to work, you need to have ownership of a domain name,
-        and access to a web server that this domain is pointed to. Then, you'll
-        need to set up a proxy that points
-        `https://{your_domain}/.well-known/nostr.json` to
-        `https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json`
-        <br /><br />
-        <strong>Example nginx configuration</strong>
-        <br />
-
-        <q-card>
-          <q-card-section>
-            <small class="text-caption">
-              proxy_cache_path /tmp/nginx_cache keys_zone=nip5_cache:5m
-              levels=1:2 inactive=300s max_size=100m use_temp_path=off;<br />
-
-              location /.well-known/nostr.json {<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_pass
-              https://{your_lnbits}/nostrnip5/api/v1/domain/{domain_id}/nostr.json;<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host {your_lnbits};<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_ssl_server_name on;<br /><br />
-
-              &nbsp;&nbsp;&nbsp;&nbsp;expires 5m;<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;add_header Cache-Control "public,
-              no-transform";<br /><br />
-
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_cache nip5_cache;<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_cache_lock on;<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_cache_valid 200 300s;<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;proxy_cache_use_stale error timeout
-              invalid_header updating http_500 http_502 http_503 http_504;<br />
-              }
-            </small>
-          </q-card-section>
-        </q-card>
+                               
       </q-card-section>
     </p>
   </q-card>
