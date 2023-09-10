@@ -7,7 +7,7 @@ from loguru import logger
 
 from .models import RelayData,  NostrAccountData
 
-
+# Relays
 async def get_relays() -> List[RelayData]:
     rows = await db.fetchall("SELECT * FROM nostrboltcardbot.relays")
     return [RelayData(**row) for row in rows]
@@ -15,7 +15,19 @@ async def get_relays() -> List[RelayData]:
 
 async def get_relay_by_id(id: str) -> Optional[RelayData]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.relays WHERE id = ?", (id,)
+        "SELECT * FROM nostrboltcardbot.relays WHERE id = ?", (id)
+    )
+    if not row:
+        return None
+
+    relay = dict(**row)
+
+    return RelayData.parse_obj(relay)
+
+
+async def get_relay_by_url(url: str) -> Optional[RelayData]:
+    row = await db.fetchone(
+        "SELECT * FROM nostrboltcardbot.relays WHERE url = ?", (url)
     )
     if not row:
         return None
@@ -41,8 +53,10 @@ async def add_relay(relay: RelayData) -> None:
     return relay
 
 
-async def delete_relay(relay: RelayData) -> None:
-    await db.execute("DELETE FROM nostrboltcardbot.relays WHERE url = ?", (relay.url,))
+async def delete_nostr_relay(id: str) -> None:
+    await db.execute("DELETE FROM nostrboltcardbot.relays WHERE id = ?", (id))
+
+# Accounts
 
 
 async def get_nostr_accounts() -> List[NostrAccount]:
@@ -50,8 +64,7 @@ async def get_nostr_accounts() -> List[NostrAccount]:
     return [NostrAccount(**row) for row in rows]
 
 
-async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
-    #domain_id = urlsafe_short_hash()
+async def add_nostr_account(account: NostrAccount) -> NostrAccountData:   
     await db.execute(
         f"""
         INSERT INTO nostrboltcardbot.accounts (
@@ -69,7 +82,7 @@ async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
 
 async def get_account_by_id(id: str) -> Optional[NostrAccount]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.accounts WHERE id = ?", (id,)
+        "SELECT * FROM nostrboltcardbot.accounts WHERE id = ?", (id)
     )
     if not row:
         return None
@@ -79,8 +92,22 @@ async def get_account_by_id(id: str) -> Optional[NostrAccount]:
     return NostrAccount.parse_obj(account)
 
 
-# crud.py is for communication with your extensions database
-# Card DB
+async def get_account_by_nsec(nsec: str) -> Optional[NostrAccount]:
+    row = await db.fetchone(
+        "SELECT * FROM nostrboltcardbot.accounts WHERE nsec = ?", (nsec)
+    )
+    if not row:
+        return None
+
+    account = dict(**row)
+
+    return NostrAccount.parse_obj(account)
+
+async def delete_nostr_account(id: str) -> None:
+    await db.execute("DELETE FROM nostrboltcardbot.accounts WHERE id = ?", (id))
+
+
+# Cards
 async def insert_card(uid, npub, card_name):
     await db.execute(
         """
@@ -143,7 +170,8 @@ async def get_cards() -> List[NostrBotCard]:
     return [NostrBotCard(**row) for row in rows]
 
 
-async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:    
+async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:
+    # npub_hex = normalize_public_key(data.npub)   
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE nostrboltcardbot.cards SET {q} WHERE uid = ?",
@@ -154,13 +182,13 @@ async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:
 
 async def delete_nostrbot_card(uid: str) -> None:
     # Delete cards
-    await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper(),))
+    await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper()))
 
 
 async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
     logger.debug(uid.upper())
     row = await db.fetchone(
-        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper(),)
+        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper())
     )    
     if not row:
         return None
@@ -176,5 +204,5 @@ async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:
         f"UPDATE boltcards.cards SET {q} WHERE uid = ?",
         (*kwargs.values(), uid.upper()),
     )    
-    row = await db.fetchone("SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper(),))
+    row = await db.fetchone("SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper()))
     return BCard(**row) if row else None
