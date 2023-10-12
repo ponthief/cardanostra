@@ -12,7 +12,9 @@ from .crud import (
     get_boltcard_by_uid,
     update_boltcard,
     get_npub_cards,
-    insert_card
+    insert_card,
+    get_boltcard_bal,
+    get_boltcard_spent_day
 )
 
 
@@ -77,6 +79,8 @@ class NostrBot(EventHandler):
 /day_max <card_name> <sats> - sets new daily max
 /list - displays all the cards registered to pub key
 /register <uid> <card_name> - register new card
+/bal <card_name> - display card balance
+/spent <card_name> - total spent today
 """
 
     async def get_card_details(self, card_name, pub_key):                         
@@ -119,7 +123,27 @@ class NostrBot(EventHandler):
         if card is None:
             return 'Failed to register card.'
         return "Card successfully registered."
-
+    
+    async def get_bal_for_card(self, card_name, pub_key):                         
+        the_card = await check_card_owned_by_npub(card_name, pub_key)        
+        if the_card is not None:
+            bcard = await get_boltcard_by_uid(the_card.uid)
+            if bcard is None:
+               return 'Card must be added through BoltCards extension first.'
+            card_bal = await get_boltcard_bal(the_card.uid)            
+            return f'Remaining balance for {card_name}: {card_bal} sats'
+        return f'{card_name} not found. Register first via /register command.'
+    
+    async def get_day_spent_for_card(self, card_name, pub_key):                         
+        the_card = await check_card_owned_by_npub(card_name, pub_key)        
+        if the_card is not None:
+            bcard = await get_boltcard_by_uid(the_card.uid)
+            if bcard is None:
+               return 'Card must be added through BoltCards extension first.'
+            card_spent = await get_boltcard_spent_day(the_card.uid)            
+            return f"Spent today on {card_name}: {card_spent} sats"
+        return f'{card_name} not found. Register first via /register command.'
+    
     async def handle_bot_command(self, the_event):        
         prompt_text = the_event.content
         if the_event.kind == Event.KIND_ENCRYPT:
@@ -151,7 +175,13 @@ class NostrBot(EventHandler):
                 response_text = await self.list_cards_for_npub(pk)  
 
             case ["/register", uid, card_name]:
-                response_text = await self.register_card(uid, card_name, pk)     
+                response_text = await self.register_card(uid, card_name, pk)  
+
+            case ["/bal", card_name]:
+                response_text = await self.get_bal_for_card(card_name, pk)
+
+            case ["/spent", card_name]:
+                response_text = await self.get_day_spent_for_card(card_name, pk)           
 
             case _: response_text = self.menu()
         #response_text = self.menu() #f'hey {reply_name} this is reply to you'

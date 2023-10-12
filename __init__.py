@@ -36,5 +36,5 @@ def nostrboltcardbot_start():
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     scheduled_tasks.append(task1)
-    task2 = loop.create_task(catch_everything_and_restart(check_reconnect))
-    scheduled_tasks.append(task2)
+    # task2 = loop.create_task(catch_everything_and_restart(check_reconnect))
+    # scheduled_tasks.append(task2)

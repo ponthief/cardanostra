@@ -196,13 +196,32 @@ async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
     card = dict(**row)    
     return BCard.parse_obj(card)
 
-async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:  
-    logger.debug('try update')  
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    logger.debug(q)
+
+async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:        
+    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])    
     await db.execute(
         f"UPDATE boltcards.cards SET {q} WHERE uid = ?",
         (*kwargs.values(), uid.upper()),
     )    
     row = await db.fetchone("SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper()))
     return BCard(**row) if row else None
+
+
+async def get_boltcard_bal(uid: str) -> Optional[int]:          
+    row = await db.fetchone("SELECT wallet FROM boltcards.cards WHERE uid = ?", (uid.upper()))
+    if row:
+        row = await db.fetchone("SELECT balance FROM public.balances WHERE wallet = ?", (row[0]))
+        if row[0]:
+            return int(row[0]/1000)
+    return 0
+
+async def get_boltcard_spent_day(uid: str) -> Optional[int]:
+    row = await db.fetchone("SELECT wallet FROM boltcards.cards WHERE uid = ?", (uid.upper()))
+    if row:
+        row = await db.fetchone("SELECT sum(amount) FROM public.apipayments WHERE wallet = ? AND "
+                                "time >= date_trunc('day', NOW()) - INTERVAL '1 day' "
+                                "AND time <  date_trunc('day', NOW())", (row[0]))
+        logger.debug(row)
+        if row[0]:
+            return abs(int(row[0]/1000))        
+    return 0

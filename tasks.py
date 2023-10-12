@@ -8,7 +8,9 @@ from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, Clie
 from lnbits.extensions.nostrboltcardbot.monstr.event_handlers import LastEventHandler
 from lnbits.extensions.nostrboltcardbot.monstr.event import Event
 from lnbits.extensions.nostrboltcardbot.monstr.encrypt import Keys
-
+from lnbits.core.models import Payment
+from lnbits.helpers import get_current_extension_name
+from lnbits.tasks import register_invoice_listener
 
 from .crud import (          
     get_relays,
@@ -72,15 +74,40 @@ async def start_bot():
     # start the clients
     logger.debug('monitoring for events from or to account %s on relays %s' % (as_user.public_key_hex(),
                                                                         relays))
-    await clients.run()
-    
+    # await clients.run()
+    await check_reconnect()
+
+# async def wait_for_paid_invoices():
+#     invoice_queue = asyncio.Queue()
+#     register_invoice_listener(invoice_queue, get_current_extension_name())
+
+#     while True:
+#         payment = await invoice_queue.get()
+#         await on_invoice_paid(payment)
+
+
+# async def on_invoice_paid(payment: Payment) -> None:
+
+#     if not payment.extra.get("refund"):
+#         return
+
+#     if payment.extra.get("wh_status"):
+#         # this webhook has already been sent
+#         return
+
+#     hit = await get_hit(str(payment.extra.get("refund")))
+
+#     if hit:
+#         await create_refund(hit_id=hit.id, refund_amount=(payment.amount / 1000))
+#         await mark_webhook_sent(payment, 1)
+
 
 async def check_reconnect():
-    while True:
-        await asyncio.sleep(20)
+    while True:        
         try:
             for cli in clients:
                 if not cli._is_connected:
                     await cli.run()                                  
+            await asyncio.sleep(20)
         except Exception as e:
             logger.warning(f"Cannot restart relays: '{str(e)}'.")
