@@ -115,6 +115,9 @@ class NostrBot(EventHandler):
         # uid_len = await self.get_uid_len(uid)
         # if uid_len != 7:
         #     return f'{uid} is not valid card UID.'
+        bcard = await get_boltcard_by_uid(uid)
+        if bcard is None:
+            return 'Card must be added through BoltCards extension first.'
         card = await get_nostrbotcard_by_uid(uid)
         if card is not None:
             return 'Nothing to do. Card already registered.'                 

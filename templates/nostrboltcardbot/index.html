@@ -1,7 +1,7 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md">
-  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+  <div v-if="g.user.admin" class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>   
         <q-btn unelevated color="primary" @click="accountDialog.show = true"
@@ -13,7 +13,7 @@
         >Register Existing BoltCard</q-btn
       >
       </q-card-section>
-    </q-card>
+    </q-card>          
     <q-card>
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
@@ -167,6 +167,21 @@
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
+    <div v-if="g.user.admin" class="col-12 q-mb-lg">
+      <q-card>
+        <q-card-section class="q-pa-md">
+          <q-btn
+            label="Restart Nostr Connection"
+            color="pink"
+            @click="restartNostrConnection"
+          >
+            <q-tooltip>
+              Restart connection to the existing relays
+            </q-tooltip>
+          </q-btn>
+        </q-card-section>
+      </q-card>
+    </div>
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
@@ -218,8 +233,8 @@
   <q-dialog v-model="relayDialog.show" position="top" @hide="closerelayDialog">
     <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
       <q-form @submit="saveRelay" class="q-gutter-md">
-        <q-input
-          filled
+        <q-input          
+          filled          
           dense     
           emit-value     
           v-model.trim="relayDialog.data.url"        
@@ -432,7 +447,17 @@
       closecardDialog: function () {
         this.cardDialog.data = {}
       },      
-      
+      restartNostrConnection: function () {        
+        var self = this               
+        LNbits.api
+          .request(
+            'POST',
+            '/nostrboltcardbot/api/v1/restart'                                                     
+            )
+          .catch(function (error) {
+            LNbits.utils.notifyApiError(error)
+          })
+      },
       saveAccount: function () {
         var data = this.accountDialog.data
         var self = this
@@ -441,7 +466,7 @@
           .request(
             'POST',
             '/nostrboltcardbot/api/v1/account',          
-              _.inkey,
+              _.adminkey,
             data
           )
           .then(function (response) {
@@ -462,9 +487,9 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/relay',          
-              _.inkey,
-            data
+            '/nostrboltcardbot/api/v1/relay',  
+            _.adminkey,                    
+            data          
           )
           .then(function (response) {
             if (response.data != '') {
@@ -486,7 +511,7 @@
           .request(
             'POST',
             '/nostrboltcardbot/api/v1/register',          
-              _.inkey,
+            _.adminkey,
             data
           )
           .then(function (response) {

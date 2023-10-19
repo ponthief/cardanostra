@@ -185,8 +185,7 @@ async def delete_nostrbot_card(uid: str) -> None:
     await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper()))
 
 
-async def get_boltcard_by_uid(uid: str) -> Optional[Card]:
-    logger.debug(uid.upper())
+async def get_boltcard_by_uid(uid: str) -> Optional[Card]:    
     row = await db.fetchone(
         "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper())
     )    
