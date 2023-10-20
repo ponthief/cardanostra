@@ -91,7 +91,7 @@ async def check_reconnect():
             for cli in NClients:
                 if not cli._run:
                     for task in scheduled_tasks:
-                        if task.get_name() == 'CardoNostra':
+                        if task.get_name() == 'CardaNostra':
                             logger.debug(f"stopping task: {task.get_name()}")
                             task.cancel()                            
                             await asyncio.sleep(0.1)
@@ -102,7 +102,7 @@ async def check_reconnect():
 
 async def stop_bot():    
     for task in scheduled_tasks:
-        if task.get_name() == 'CardoNostra':
+        if task.get_name() == 'CardaNostra':
             logger.debug(f"stopping task: {task.get_name()}")
             ts = task.cancel()
             logger.debug(ts)

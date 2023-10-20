@@ -35,7 +35,7 @@ from .views_api import *  # noqa: F401,F403
 def nostrboltcardbot_start():
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot)) 
-    task1.set_name("CardoNostra")   
+    task1.set_name("CardaNostra")   
     task2 = loop.create_task(catch_everything_and_restart(check_reconnect))
     scheduled_tasks.append(task1)
     scheduled_tasks.append(task2)

@@ -5,7 +5,7 @@
 from http import HTTPStatus
 from fastapi import Depends
 from starlette.exceptions import HTTPException
-from lnbits.decorators import check_admin
+from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import urlsafe_short_hash
 from . import nostrboltcardbot_ext
 from loguru import logger
@@ -30,10 +30,11 @@ from .crud import (
 from .models import (   
     NostrCardData,
     NostrAccount,
+    NostrAccountData,
     RelayData
 )
 from .helpers import normalize_public_key, validate_private_key
-from .tasks import start_bot, stop_bot
+from .tasks import stop_bot
 
 
 def validate_card(data: NostrCardData):
@@ -63,24 +64,14 @@ def validate_account(data: NostrAccount):
             detail="Invalid private key provided.", status_code=HTTPStatus.BAD_REQUEST
         )
 
-# add your endpoints here
-# @nostrboltcardbot_ext.put("/api/v1/restart")
-# async def restart_nostr_client(wallet: WalletTypeInfo = Depends(require_admin_key)):
-#     try:
-#         await nostr_client.restart()
-#     except Exception as ex:
-#         logger.warning(ex)
-
 # Account Control
 
-@nostrboltcardbot_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK, 
-                          dependencies=[Depends(check_admin)])
-async def api_accounts():   
+@nostrboltcardbot_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK,)
+async def api_accounts(wallet: WalletTypeInfo = Depends(require_admin_key)):   
     return [account.dict() for account in await get_nostr_accounts()] 
 
-@nostrboltcardbot_ext.delete("/api/v1/accounts/{id}",
-                             dependencies=[Depends(check_admin)])
-async def delete_account(id: str): 
+@nostrboltcardbot_ext.delete("/api/v1/accounts/{id}")
+async def delete_account(id: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkId = await get_account_by_id(id)
     if checkId is None:
         raise HTTPException(
@@ -93,10 +84,10 @@ async def delete_account(id: str):
     "/api/v1/account",
     description="Add new Nostr account",
     status_code=HTTPStatus.CREATED,
-    dependencies=[Depends(validate_account), Depends(check_admin)]
+    dependencies=[Depends(validate_account)]
 )
-async def api_add_nostr_account(
-    data: NostrAccount
+async def api_add_nostr_account(wallet: WalletTypeInfo = Depends(require_admin_key),
+    data: NostrAccount = None
 ):
     data.id = urlsafe_short_hash()
     account_exist = await get_account_by_nsec(data.nsec)
@@ -115,19 +106,17 @@ async def api_add_nostr_account(
 
 # Relay Control
 
-@nostrboltcardbot_ext.get("/api/v1/relays", status_code=HTTPStatus.OK,
-                          dependencies=[Depends(check_admin)])
-async def api_relays():       
+@nostrboltcardbot_ext.get("/api/v1/relays", status_code=HTTPStatus.OK)
+async def api_relays(wallet: WalletTypeInfo = Depends(require_admin_key)):       
     return [relay.dict() for relay in await get_relays()] 
 
 
 @nostrboltcardbot_ext.post(
     "/api/v1/relay",
     description="Add new Relay",    
-    status_code=HTTPStatus.CREATED,
-    dependencies=[Depends(check_admin)])
-async def api_add_relay(
-    data: RelayData
+    status_code=HTTPStatus.CREATED)
+async def api_add_relay( wallet: WalletTypeInfo = Depends(require_admin_key),
+    data: RelayData = None
 ):
     rel_exist = await get_relay_by_url(data.url)
     if rel_exist:
@@ -145,8 +134,8 @@ async def api_add_relay(
     assert relay, "add relay should always return a relay"     
     return relay
 
-@nostrboltcardbot_ext.delete("/api/v1/relays/{id}", dependencies=[Depends(check_admin)])
-async def delete_relay(id: str): 
+@nostrboltcardbot_ext.delete("/api/v1/relays/{id}")
+async def delete_relay(id: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkId = await get_relay_by_id(id)
     if checkId is None:
         raise HTTPException(
@@ -159,8 +148,8 @@ async def delete_relay(id: str):
 
 @nostrboltcardbot_ext.post("/api/v1/register", 
                            status_code=HTTPStatus.CREATED,
-                           dependencies=[Depends(validate_card), Depends(check_admin)])
-async def set_card(data: NostrCardData): 
+                           dependencies=[Depends(validate_card)])
+async def set_card(wallet: WalletTypeInfo = Depends(require_admin_key), data: NostrCardData = None): 
     checkBUid = await get_boltcard_by_uid(data.uid)
     if checkBUid is None:
         raise HTTPException(
@@ -177,8 +166,8 @@ async def set_card(data: NostrCardData):
     assert card, "create_card should always return a card"
     return card      
 
-@nostrboltcardbot_ext.delete("/api/v1/cards/{card_uid}", dependencies=[Depends(check_admin)])
-async def delete_card(card_uid: str): 
+@nostrboltcardbot_ext.delete("/api/v1/cards/{card_uid}")
+async def delete_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkUid = await get_nostrbotcard_by_uid(card_uid)
     if not checkUid:
         raise HTTPException(
@@ -187,84 +176,13 @@ async def delete_card(card_uid: str):
     await delete_nostrbot_card(card_uid)
     return "", HTTPStatus.NO_CONTENT 
 
-@nostrboltcardbot_ext.get("/api/v1/cards", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)])
-async def api_cards():   
+@nostrboltcardbot_ext.get("/api/v1/cards", status_code=HTTPStatus.OK)
+async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):   
     logger.debug([card.dict() for card in await get_cards()])
     return [card.dict() for card in await get_cards()]      
 # Bot 
 
-@nostrboltcardbot_ext.post("/api/v1/restart")
-async def api_restart_bot():    
+@nostrboltcardbot_ext.put("/api/v1/restart")
+async def api_restart_bot(wallet: WalletTypeInfo = Depends(require_admin_key)):    
     await stop_bot()
-    # await start_bot()
-
-# @nostrboltcardbot_ext.post(
-#     "api/v1/relay",
-#     description="Add new relay",
-#     status_code=HTTPStatus.OK,
-#     dependencies=[Depends(validate_account)]
-# )
-# async def api_add_relay(
-#     data: NostrRelayData
-# ):
-#     bot_settings = await add_relay(data)    
-    # if wallet_type.wallet.id == settings.super_user:
-    #         client = await start_bot(bot_settings)
-    # else:
-    #     raise HTTPException(
-    #         status_code=400,
-    #         detail="Only the super user can add new relay",
-    #     )    
-    # return BotInfo.from_client(bot_settings, client)
-
-
-# async def api_add_relay(
-#     data: NostrAccountData
-# ):
-#     bot_settings = await add_relay(data)    
-#     # if wallet_type.wallet.id == settings.super_user:
-#     #         client = await start_bot(bot_settings)
-#     # else:
-#     #     raise HTTPException(
-#     #         status_code=400,
-#     #         detail="Only the super user can add new relay",
-#     #     )    
-#     # return BotInfo.from_client(bot_settings, client)
-# @nostrboltcardbot_ext.delete(
-#     "/api/v1/delete",
-#     status_code=HTTPStatus.OK,
-# )
-# async def api_delete_bot(bot_settings: BotSettings = Depends(require_bot_settings)):
-#     if not bot_settings.standalone:
-#         await stop_bot()
-#     await delete_nostrboltbot_settings(bot_settings.admin)
-
-
-# @nostrboltcardbot_ext.patch(
-#     "/api/v1/update",
-#     status_code=HTTPStatus.OK,
-# )
-# async def api_update_bot(
-#     data: UpdateBotSettings, bot_settings: BotSettings = Depends(require_bot_settings)
-# ):
-#     bot_settings = await update_nostrboltbot_settings(data, bot_settings.admin)
-#     if not bot_settings.standalone:
-#         await start_bot(bot_settings)
-
-
-# @nostrboltcardbot_ext.get("/api/v1/start", status_code=HTTPStatus.OK, 
-#                           response_model=BotInfo)
-# async def api_bot_start(bot_settings: BotSettings = Depends(require_bot_settings)):
-#     if bot_settings.standalone:
-#         raise HTTPException(status_code=400, detail="Standalone bot cannot be started")
-#     client = await start_bot(bot_settings)
-#     return BotInfo.from_client(bot_settings, client)
-
-
-# @nostrboltcardbot_ext.get("/api/v1/stop", status_code=HTTPStatus.OK, response_model=BotInfo)
-# async def api_bot_stop(bot_settings: BotSettings = Depends(require_bot_settings)):
-#     if bot_settings.standalone:
-#         raise HTTPException(status_code=400, detail="Standalone bot cannot be stopped")
-#     client = await stop_bot()
-#     return BotInfo.from_client(bot_settings, client)
-
+    return "Nostr connections restarted.", HTTPStatus.OK    

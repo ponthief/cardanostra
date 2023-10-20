@@ -1,11 +1,11 @@
 {% extends "base.html" %} {% from "macros.jinja" import window_vars with context
 %} {% block page %}
 <div class="row q-col-gutter-md">
-  <div v-if="g.user.admin" class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
+  <div class="col-12 col-md-8 col-lg-7 q-gutter-y-md">
     <q-card>
       <q-card-section>   
         <q-btn unelevated color="primary" @click="accountDialog.show = true"
-          >Add Nostr Bot Account</q-btn>            
+          >Add Nostr Account</q-btn>            
         <q-btn unelevated color="primary" @click="relayDialog.show = true"
           >Add Nostr Relay</q-btn
         >
@@ -167,7 +167,7 @@
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
-    <div v-if="g.user.admin" class="col-12 q-mb-lg">
+    <div class="col-12 q-mb-lg">
       <q-card>
         <q-card-section class="q-pa-md">
           <q-btn
@@ -185,7 +185,7 @@
     <q-card>
       <q-card-section>
         <h6 class="text-subtitle1 q-my-none">
-          {{SITE_TITLE}} Nostr BoltCard Bot Extension
+          {{SITE_TITLE}} CardaNostra - Nostr BoltCard Managament Extension
         </h6>
         <p>
           <strong
@@ -220,7 +220,7 @@
             color="primary"
             :disable="accountDialog.data.nsec == null"
             type="submit"
-            >Add Nostr Bot Account</q-btn
+            >Add Nostr Account</q-btn
           >
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
@@ -294,41 +294,10 @@
           <q-btn
             unelevated
             color="primary"
-            :disable="cardDialog.data.uid == null || cardDialog.data.card_name == null || cardDialog.data.npub"
+            :disable="cardDialog.data.uid == null || cardDialog.data.card_name == null || cardDialog.data.npub == null"
             type="submit"
             >Register Card</q-btn
           >
-          <q-btn v-close-popup flat color="grey" class="q-ml-auto"
-            >Cancel</q-btn
-          >
-        </div>
-      </q-form>
-    </q-card>
-  </q-dialog>
-
-  <q-dialog
-    v-model="editcardDialog.show"
-    position="top"
-    @hide="closecardDialog"
-  >
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
-      <q-form @submit="saveEditedCard" class="q-gutter-md">        
-        <q-input
-          filled
-          dense
-          v-model.trim="editcardDialog.data.card_name"
-          label="Card Name"
-          placeholder="What is new card name?"
-        ></q-input>
-        <q-input
-          filled
-          dense
-          v-model.trim="editcardDialog.data.npub"
-          label="Pubkey"
-          placeholder="What is new Nostr pubkey?"
-        ></q-input>
-        <div class="row q-mt-lg">
-          <q-btn unelevated color="primary" type="submit">Update Card</q-btn>
           <q-btn v-close-popup flat color="grey" class="q-ml-auto"
             >Cancel</q-btn
           >
@@ -451,8 +420,9 @@
         var self = this               
         LNbits.api
           .request(
-            'POST',
-            '/nostrboltcardbot/api/v1/restart'                                                     
+            'PUT',
+            '/nostrboltcardbot/api/v1/restart',
+            self.g.user.wallets[0].adminkey,                                                     
             )
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
@@ -465,8 +435,8 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/account',          
-              _.adminkey,
+            '/nostrboltcardbot/api/v1/account',                                  
+            self.g.user.wallets[0].adminkey,
             data
           )
           .then(function (response) {
@@ -488,7 +458,7 @@
           .request(
             'POST',
             '/nostrboltcardbot/api/v1/relay',  
-            _.adminkey,                    
+            self.g.user.wallets[0].adminkey,                    
             data          
           )
           .then(function (response) {
@@ -511,7 +481,7 @@
           .request(
             'POST',
             '/nostrboltcardbot/api/v1/register',          
-            _.adminkey,
+            self.g.user.wallets[0].adminkey,
             data
           )
           .then(function (response) {
@@ -525,35 +495,7 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-      },
-      saveEditedCard: function () {
-        var data = this.editcardDialog.data
-        var self = this
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/nostrboltcardbot/api/v1/cards?usr=' + this.g.user.id,
-            _.findWhere({
-              uid: this.editcardDialog.data.uid
-            }).inkey,
-            data
-          )
-          .then(function (response) {
-            self.editcardDialog.show = false
-            self.editcardDialog.data = {}
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      editCard: function (uid) {
-        var self = this
-        var data = _.findWhere(this.cards, {uid: uid})
-
-        self.editcardDialog.show = true
-        self.editcardDialog.data = data
-      },
+      },      
       deleteAccount: function (id) {
         var self = this
         var account = _.findWhere(this.accounts, {id: id})
@@ -565,11 +507,11 @@
               .request(
                 'DELETE',
                 '/nostrboltcardbot/api/v1/accounts/' + id,
-                _.adminkey
+                self.g.user.wallets[0].adminkey               
               )
               .then(function (response) {
                 self.accounts = _.reject(self.accounts, function (obj) {
-                  return obj.id == id
+                  return obj.id === id
                 })
               })
               .catch(function (error) {
@@ -588,11 +530,11 @@
               .request(
                 'DELETE',
                 '/nostrboltcardbot/api/v1/relays/' + id,
-                _.adminkey
+                self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
                 self.relays = _.reject(self.relays, function (obj) {
-                  return obj.id == id
+                  return obj.id === id
                 })
               })
               .catch(function (error) {
@@ -611,11 +553,11 @@
               .request(
                 'DELETE',
                 '/nostrboltcardbot/api/v1/cards/' + uid,
-                _.findWhere({uid: uid}).adminkey
+                self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
                 self.cards = _.reject(self.cards, function (obj) {
-                  return obj.uid == uid
+                  return obj.uid === uid
                 })
               })
               .catch(function (error) {
