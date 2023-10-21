@@ -7,7 +7,6 @@ from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
 
-
 db = Database("ext_nostrboltcardbot")
 
 nostrboltcardbot_ext: APIRouter = APIRouter(prefix="/nostrboltcardbot", tags=["nostrboltcardbot"])
@@ -27,15 +26,13 @@ def nostrboltcardbot_renderer():
     return template_renderer(["lnbits/extensions/nostrboltcardbot/templates"])
 
 
-from .tasks import start_bot, check_reconnect
+from .tasks import start_bot
 from .views import *  # noqa: F401,F403
 from .views_api import *  # noqa: F401,F403
 
 
 def nostrboltcardbot_start():
     loop = asyncio.get_event_loop()
-    task1 = loop.create_task(catch_everything_and_restart(start_bot)) 
-    task1.set_name("CardaNostra")   
-    task2 = loop.create_task(catch_everything_and_restart(check_reconnect))
+    task1 = loop.create_task(catch_everything_and_restart(start_bot))
+    task1.set_name("CardaNostra")           
     scheduled_tasks.append(task1)
-    scheduled_tasks.append(task2)

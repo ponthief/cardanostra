@@ -1,13 +1,12 @@
 import asyncio
 from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, ClientPool
-from lnbits.extensions.nostrboltcardbot.monstr.event_handlers import EventHandler, DeduplicateAcceptor, LastEventHandler
+from lnbits.extensions.nostrboltcardbot.monstr.event_handlers import EventHandler, DeduplicateAcceptor
 from lnbits.extensions.nostrboltcardbot.monstr.event import Event
 from lnbits.extensions.nostrboltcardbot.monstr.encrypt import Keys
 from loguru import logger
 
 from .crud import (       
     get_nostrbotcard_by_uid,    
-    update_nostrbot_card,
     check_card_owned_by_npub,
     get_boltcard_by_uid,
     update_boltcard,
@@ -24,6 +23,7 @@ class NostrBot(EventHandler):
         self._as_user = as_user
         self._clients = clients                
         super().__init__(event_acceptors=[DeduplicateAcceptor()])
+
 
     def _make_reply_tags(self, src_evt: Event) -> []:
         """
@@ -68,9 +68,14 @@ class NostrBot(EventHandler):
             asyncio.create_task(self._store.put(prompt_evt=evt,
                                                 reply_evt=response_event))
 
+    # This async function will raise an exception
+    async def async_restart(self):
+        await asyncio.sleep(1)
+        raise Exception("We need to restart")
+
 
     def menu(self):
-        return """ ***** BoltCard Bot Commander *****
+        return """ ***** CardaNostra Commands *****
 /help - shows this menu
 /freeze <card_name> - disables card
 /enable <card_name> - (re)enables card

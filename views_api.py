@@ -29,12 +29,11 @@ from .crud import (
 )
 from .models import (   
     NostrCardData,
-    NostrAccount,
-    NostrAccountData,
+    NostrAccount,    
     RelayData
 )
 from .helpers import normalize_public_key, validate_private_key
-from .tasks import stop_bot
+from .tasks import restart_bot
 
 
 def validate_card(data: NostrCardData):
@@ -179,10 +178,12 @@ async def delete_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_ad
 @nostrboltcardbot_ext.get("/api/v1/cards", status_code=HTTPStatus.OK)
 async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):   
     logger.debug([card.dict() for card in await get_cards()])
-    return [card.dict() for card in await get_cards()]      
+    return [card.dict() for card in await get_cards()]  
+    
 # Bot 
 
 @nostrboltcardbot_ext.put("/api/v1/restart")
 async def api_restart_bot(wallet: WalletTypeInfo = Depends(require_admin_key)):    
-    await stop_bot()
-    return "Nostr connections restarted.", HTTPStatus.OK    
+    await restart_bot()
+    return {"success": True}
+    # return "Nostr connections restarted.", HTTPStatus.OK    
