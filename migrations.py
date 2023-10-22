@@ -1,25 +1,19 @@
-from lnbits.db import SQLITE, Database
 
-
-async def m004_add_cards(db):
+async def m001_initial(db):
 
     await db.execute(
         """
-        CREATE TABLE nostrboltcardbot.cards (            
+        CREATE TABLE cardanostra.cards (            
             uid TEXT PRIMARY KEY, 
             npub TEXT NOT NULL,           
             card_name TEXT NOT NULL                    
         );
     """
     ) 
-
-
-async def m005_add_relays_accounts(db):
-
       
     await db.execute(
         """
-         CREATE TABLE nostrboltcardbot.relays (
+         CREATE TABLE cardanostra.relays (
             id TEXT NOT NULL PRIMARY KEY,
             url TEXT NOT NULL,
             active BOOLEAN DEFAULT true
@@ -29,7 +23,7 @@ async def m005_add_relays_accounts(db):
 
     await db.execute(
         """
-        CREATE TABLE nostrboltcardbot.accounts (            
+        CREATE TABLE cardanostra.accounts (            
             id TEXT NOT NULL PRIMARY KEY,
             nsec TEXT NOT NULL                 
         );

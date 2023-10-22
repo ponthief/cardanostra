@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "nostrboltcardbot"
+name = "cardanostra"
 version = "0.1.0"
-description = "Nostr BoltCard Bot Extension"
+description = "Nostr BoltCard Extension"
 authors = ["Ponthief"]
 readme = "README.md"
 

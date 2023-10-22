@@ -181,9 +181,9 @@
           </q-btn>
           <p>
             <br>
-          <h7 class="text-subtitle1 q-my-none">
+          <h6 class="text-subtitle1 q-my-none">
             Restart is required when adding/removing Accounts or Relays
-          </h7>
+          </h6>
         </p>
         </q-card-section>
       </q-card>
@@ -202,7 +202,7 @@
       </q-card-section>
       <q-card-section class="q-pa-none">
         <q-separator></q-separator>
-        <q-list> {% include "nostrboltcardbot/_api_docs.html" %} </q-list>
+        <q-list> {% include "cardanostra/_api_docs.html" %} </q-list>
       </q-card-section>
     </q-card>
   </div>
@@ -427,7 +427,7 @@
         LNbits.api
           .request(
             'PUT',
-            '/nostrboltcardbot/api/v1/restart',
+            '/cardanostra/api/v1/restart',
             self.g.user.wallets[0].adminkey,                                                     
             )
           .catch(function (error) {
@@ -441,7 +441,7 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/account',                                  
+            '/cardanostra/api/v1/account',                                  
             self.g.user.wallets[0].adminkey,
             data
           )
@@ -463,7 +463,7 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/relay',  
+            '/cardanostra/api/v1/relay',  
             self.g.user.wallets[0].adminkey,                    
             data          
           )
@@ -486,7 +486,7 @@
         LNbits.api
           .request(
             'POST',
-            '/nostrboltcardbot/api/v1/register',          
+            '/cardanostra/api/v1/register',          
             self.g.user.wallets[0].adminkey,
             data
           )
@@ -512,7 +512,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/nostrboltcardbot/api/v1/accounts/' + id,
+                '/cardanostra/api/v1/accounts/' + id,
                 self.g.user.wallets[0].adminkey               
               )
               .then(function (response) {
@@ -535,7 +535,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/nostrboltcardbot/api/v1/relays/' + id,
+                '/cardanostra/api/v1/relays/' + id,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
@@ -558,7 +558,7 @@
             LNbits.api
               .request(
                 'DELETE',
-                '/nostrboltcardbot/api/v1/cards/' + uid,
+                '/cardanostra/api/v1/cards/' + uid,
                 self.g.user.wallets[0].adminkey
               )
               .then(function (response) {
@@ -586,7 +586,7 @@
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/cards?usr=' + this.g.user.id,
+          '/cardanostra/api/v1/cards?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey          
         )
         .then(function (response) {          
@@ -601,7 +601,7 @@
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/accounts?usr=' + this.g.user.id,
+          '/cardanostra/api/v1/accounts?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey
         )
         .then(function (response) {
@@ -616,7 +616,7 @@
       LNbits.api
         .request(
           'GET',
-          '/nostrboltcardbot/api/v1/relays?usr=' + this.g.user.id,
+          '/cardanostra/api/v1/relays?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey
         )
         .then(function (response) {

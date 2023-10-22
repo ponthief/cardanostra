@@ -1,8 +1,8 @@
 import asyncio
-from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, ClientPool
-from lnbits.extensions.nostrboltcardbot.monstr.event_handlers import EventHandler, DeduplicateAcceptor
-from lnbits.extensions.nostrboltcardbot.monstr.event import Event
-from lnbits.extensions.nostrboltcardbot.monstr.encrypt import Keys
+from lnbits.extensions.cardanostra.monstr.client.client import Client, ClientPool
+from lnbits.extensions.cardanostra.monstr.event_handlers import EventHandler, DeduplicateAcceptor
+from lnbits.extensions.cardanostra.monstr.event import Event
+from lnbits.extensions.cardanostra.monstr.encrypt import Keys
 from loguru import logger
 
 from .crud import (       

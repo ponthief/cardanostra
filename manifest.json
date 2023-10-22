@@ -1,5 +1,5 @@
 {
-    "name": "Nostr BoltCard Control Bot",
+    "name": "CardaNostra",
     "short_description": "Control BoltCard via Nostr",
     "tile": "/boltcards/static/image/boltcard.png",
     "contributors": ["ponthief"],

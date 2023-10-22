@@ -3,7 +3,7 @@ from sqlite3 import Row
 from pydantic import BaseModel
 from fastapi import Query
 from sqlite3 import Row
-from typing import Dict, List, Optional 
+from typing import List, Optional 
 from lnbits.helpers import urlsafe_short_hash
 
 

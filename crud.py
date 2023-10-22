@@ -9,13 +9,13 @@ from .models import RelayData,  NostrAccountData
 
 # Relays
 async def get_relays() -> List[RelayData]:
-    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.relays")
+    rows = await db.fetchall("SELECT * FROM cardanostra.relays")
     return [RelayData(**row) for row in rows]
 
 
 async def get_relay_by_id(id: str) -> Optional[RelayData]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.relays WHERE id = ?", (id)
+        "SELECT * FROM cardanostra.relays WHERE id = ?", (id)
     )
     if not row:
         return None
@@ -27,7 +27,7 @@ async def get_relay_by_id(id: str) -> Optional[RelayData]:
 
 async def get_relay_by_url(url: str) -> Optional[RelayData]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.relays WHERE url = ?", (url)
+        "SELECT * FROM cardanostra.relays WHERE url = ?", (url)
     )
     if not row:
         return None
@@ -40,7 +40,7 @@ async def get_relay_by_url(url: str) -> Optional[RelayData]:
 async def add_relay(relay: RelayData) -> None:
     await db.execute(
         f"""
-        INSERT INTO nostrboltcardbot.relays (
+        INSERT INTO cardanostra.relays (
             id,
             url            
         )
@@ -54,20 +54,20 @@ async def add_relay(relay: RelayData) -> None:
 
 
 async def delete_nostr_relay(id: str) -> None:
-    await db.execute("DELETE FROM nostrboltcardbot.relays WHERE id = ?", (id))
+    await db.execute("DELETE FROM cardanostra.relays WHERE id = ?", (id))
 
 # Accounts
 
 
 async def get_nostr_accounts() -> List[NostrAccount]:
-    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.accounts")
+    rows = await db.fetchall("SELECT * FROM cardanostra.accounts")
     return [NostrAccount(**row) for row in rows]
 
 
 async def add_nostr_account(account: NostrAccount) -> NostrAccountData:   
     await db.execute(
         f"""
-        INSERT INTO nostrboltcardbot.accounts (
+        INSERT INTO cardanostra.accounts (
             id,
             nsec            
         )
@@ -82,7 +82,7 @@ async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
 
 async def get_account_by_id(id: str) -> Optional[NostrAccount]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.accounts WHERE id = ?", (id)
+        "SELECT * FROM cardanostra.accounts WHERE id = ?", (id)
     )
     if not row:
         return None
@@ -94,7 +94,7 @@ async def get_account_by_id(id: str) -> Optional[NostrAccount]:
 
 async def get_account_by_nsec(nsec: str) -> Optional[NostrAccount]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.accounts WHERE nsec = ?", (nsec)
+        "SELECT * FROM cardanostra.accounts WHERE nsec = ?", (nsec)
     )
     if not row:
         return None
@@ -104,14 +104,14 @@ async def get_account_by_nsec(nsec: str) -> Optional[NostrAccount]:
     return NostrAccount.parse_obj(account)
 
 async def delete_nostr_account(id: str) -> None:
-    await db.execute("DELETE FROM nostrboltcardbot.accounts WHERE id = ?", (id))
+    await db.execute("DELETE FROM cardanostra.accounts WHERE id = ?", (id))
 
 
 # Cards
 async def insert_card(uid, npub, card_name):
     await db.execute(
         """
-        INSERT INTO nostrboltcardbot.cards (            
+        INSERT INTO cardanostra.cards (            
             uid,            
             npub,
             card_name            
@@ -136,7 +136,7 @@ async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard:
 
 async def get_nostrbotcard_by_uid(uid: str) -> Optional[NostrBotCard]:
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper(),)
+        "SELECT * FROM cardanostra.cards WHERE uid = ?", (uid.upper(),)
     )
     if not row:
         return None
@@ -148,7 +148,7 @@ async def get_nostrbotcard_by_uid(uid: str) -> Optional[NostrBotCard]:
 
 async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrBotCard]:    
     row = await db.fetchone(
-        "SELECT * FROM nostrboltcardbot.cards WHERE card_name = ? AND npub = ?", (card_name, npub)
+        "SELECT * FROM cardanostra.cards WHERE card_name = ? AND npub = ?", (card_name, npub)
     )
     if not row:        
         return None    
@@ -158,7 +158,7 @@ async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrB
 
 async def get_npub_cards(npub: str) -> Optional[list]:    
     rows = await db.fetchall(
-        "SELECT card_name FROM nostrboltcardbot.cards WHERE npub = ?", (npub)
+        "SELECT card_name FROM cardanostra.cards WHERE npub = ?", (npub)
     )
     if not rows:        
         return None         
@@ -166,7 +166,7 @@ async def get_npub_cards(npub: str) -> Optional[list]:
     return ', '.join(cards)
 
 async def get_cards() -> List[NostrBotCard]:    
-    rows = await db.fetchall("SELECT * FROM nostrboltcardbot.cards")
+    rows = await db.fetchall("SELECT * FROM cardanostra.cards")
     return [NostrBotCard(**row) for row in rows]
 
 
@@ -174,15 +174,15 @@ async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:
     # npub_hex = normalize_public_key(data.npub)   
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE nostrboltcardbot.cards SET {q} WHERE uid = ?",
+        f"UPDATE cardanostra.cards SET {q} WHERE uid = ?",
         (*kwargs.values(), uid.upper()),
     )
-    row = await db.fetchone("SELECT * FROM nostrboltcardbot.cards WHERE uid = ?", (kwargs["uid"].upper(),))
+    row = await db.fetchone("SELECT * FROM cardanostra.cards WHERE uid = ?", (kwargs["uid"].upper(),))
     return NostrBotCard(**row) if row else None
 
 async def delete_nostrbot_card(uid: str) -> None:
     # Delete cards
-    await db.execute("DELETE FROM nostrboltcardbot.cards WHERE uid = ?", (uid.upper()))
+    await db.execute("DELETE FROM cardanostra.cards WHERE uid = ?", (uid.upper()))
 
 
 async def get_boltcard_by_uid(uid: str) -> Optional[Card]:    

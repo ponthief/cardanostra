@@ -7,23 +7,23 @@ from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
 
-db = Database("ext_nostrboltcardbot")
+db = Database("ext_cardanostra")
 
-nostrboltcardbot_ext: APIRouter = APIRouter(prefix="/nostrboltcardbot", tags=["nostrboltcardbot"])
+cardanostra_ext: APIRouter = APIRouter(prefix="/cardanostra", tags=["cardanostra"])
 
 scheduled_tasks: List[asyncio.Task] = []
 
-nostrboltcardbot_static_files = [
+cardanostra_static_files = [
     {
-        "path": "/nostrboltcardbot/static",
-        "app": StaticFiles(packages=[("lnbits", "extensions/nostrboltcardbot/static")]),
-        "name": "nostrboltcardbot_static",
+        "path": "/cardanostra/static",
+        "app": StaticFiles(packages=[("lnbits", "extensions/cardanostra/static")]),
+        "name": "cardanostra_static",
     }
 ]
 
 
-def nostrboltcardbot_renderer():
-    return template_renderer(["lnbits/extensions/nostrboltcardbot/templates"])
+def cardanostra_renderer():
+    return template_renderer(["lnbits/extensions/cardanostra/templates"])
 
 
 from .tasks import start_bot
@@ -31,7 +31,7 @@ from .views import *  # noqa: F401,F403
 from .views_api import *  # noqa: F401,F403
 
 
-def nostrboltcardbot_start():
+def cardanostra_start():
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     task1.set_name("CardaNostra")           

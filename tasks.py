@@ -3,16 +3,11 @@ from typing import Optional
 from loguru import logger
 from .nostrbot import NostrBot
 import httpx
-from starlette.exceptions import HTTPException
-from http import HTTPStatus
-from lnbits.extensions.nostrboltcardbot.monstr.util import util_funcs
-from lnbits.extensions.nostrboltcardbot.monstr.client.client import Client, ClientPool
-from lnbits.extensions.nostrboltcardbot.monstr.event_handlers import LastEventHandler
-from lnbits.extensions.nostrboltcardbot.monstr.event import Event
-from lnbits.extensions.nostrboltcardbot.monstr.encrypt import Keys
-# from lnbits.core.models import Payment
-# from lnbits.helpers import get_current_extension_name
-# from lnbits.tasks import register_invoice_listener
+from lnbits.extensions.cardanostra.monstr.util import util_funcs
+from lnbits.extensions.cardanostra.monstr.client.client import Client, ClientPool
+from lnbits.extensions.cardanostra.monstr.event_handlers import LastEventHandler
+from lnbits.extensions.cardanostra.monstr.event import Event
+from lnbits.extensions.cardanostra.monstr.encrypt import Keys
 from .crud import (          
     get_relays,
     get_nostr_accounts
@@ -21,18 +16,8 @@ from . import scheduled_tasks
 from lnbits.tasks import catch_everything_and_restart
 
 http_client: Optional[httpx.AsyncClient] = None
-#DEFAULT_RELAY = 'wss://nostr-pub.wellorder.net,wss://nos.lol'
-# DEFAULT_RELAY = 'ws://localhost:8888'
-DEFAULT_RELAY = 'wss://nos.lol'
-# bot account priv_k - to remove hardcode
-USE_KEY = ''
 global NClients
 NClients = None
-# def get_args():
-#     return {
-#         'relays': DEFAULT_RELAY,
-#         'bot_account': Keys(USE_KEY)
-#     }
 
 async def setup_bot():    
     accounts = [account.nsec for account in await get_nostr_accounts()] 
@@ -43,7 +28,7 @@ async def setup_bot():
 async def start_bot():     
     #args = get_args()  
     global NClients       
-    logger.debug(f"starting nostrboltcardbot")
+    logger.debug(f"starting cardanostra")
     accounts, relays = await setup_bot() 
     if len(accounts) == 0:
         logger.warning("Nostr Account private key must be added in UI for CardaNostra to function.")

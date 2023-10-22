@@ -40,12 +40,12 @@
   label="API info"
   :content-inset-level="0.5"
 >
-  <q-btn flat label="Swagger API" type="a" href="../docs#/nostrboltcardbot"></q-btn>
+  <q-btn flat label="Swagger API" type="a" href="../docs#/cardanostra"></q-btn>
   <q-expansion-item group="api" dense expand-separator label="List Accounts">
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /nostrboltcardbot/api/v1/accounts</code
+          ><span class="text-blue">GET</span> /cardanostra/api/v1/accounts</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -56,7 +56,7 @@
         <code>[&lt;account_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}nostrboltcardbot/api/v1/accounts -H
+          >curl -X GET {{ request.base_url }}cardanostra/api/v1/accounts -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -67,7 +67,7 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /nostrboltcardbot/api/v1/relays</code
+          ><span class="text-blue">GET</span> /cardanostra/api/v1/relays</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -78,7 +78,7 @@
         <code>[&lt;relay_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}nostrboltcardbot/api/v1/relays -H
+          >curl -X GET {{ request.base_url }}cardanostra/api/v1/relays -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -89,7 +89,7 @@
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">POST</span> /nostrboltcardbot/api/v1/account</code
+          ><span class="text-blue">POST</span> /cardanostra/api/v1/account</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -100,7 +100,7 @@
         <code>{account_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X POST {{ request.base_url }}nostrboltcardbot/api/v1/account -H
+          >curl -X POST {{ request.base_url }}cardanostra/api/v1/account -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -112,7 +112,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">POST</span>
-          /nostrboltcardbot/api/v1/relay</code
+          /cardanostra/api/v1/relay</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
@@ -124,7 +124,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}nostrboltcardbot/api/v1/relay -H "X-Api-Key:
+          }}cardanostra/api/v1/relay -H "X-Api-Key:
           &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -141,7 +141,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">POST</span>
-          /nostrboltcardbot/api/v1/register</code
+          /cardanostra/api/v1/register</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -152,7 +152,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}nostrboltcardbot/api/v1/register -H "X-Api-Key:
+          }}cardanostra/api/v1/register -H "X-Api-Key:
           &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -169,7 +169,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">DELETE</span>
-          /nostrboltcardbot/api/v1/accounts/{id}</code
+          /cardanostra/api/v1/accounts/{id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -179,7 +179,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}nostrboltcardbot/api/v1/accounts/{id} -H
+          }}cardanostra/api/v1/accounts/{id} -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -195,7 +195,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">DELETE</span>
-          /nostrboltcardbot/api/v1/relays/{id}</code
+          /cardanostra/api/v1/relays/{id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -205,7 +205,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}nostrboltcardbot/api/v1/relays/{id} -H
+          }}cardanostra/api/v1/relays/{id} -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -221,7 +221,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">DELETE</span>
-          /nostrboltcardbot/api/v1/cards/{id}</code
+          /cardanostra/api/v1/cards/{id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -231,7 +231,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X DELETE {{ request.base_url
-          }}nostrboltcardbot/api/v1/cards/{card_uid} -H
+          }}cardanostra/api/v1/cards/{card_uid} -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
@@ -247,7 +247,7 @@
       <q-card-section>
         <code
           ><span class="text-blue">PUT</span>
-          /nostrboltcardbot/api/v1/restart</code
+          /cardanostra/api/v1/restart</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -257,7 +257,7 @@
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X PUT {{ request.base_url
-          }}nostrboltcardbot/api/v1/restart -H
+          }}cardanostra/api/v1/restart -H
           "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
