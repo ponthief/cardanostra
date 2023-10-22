@@ -46,7 +46,8 @@ async def start_bot():
     logger.debug(f"starting nostrboltcardbot")
     accounts, relays = await setup_bot() 
     if len(accounts) == 0:
-        logger.warning("Nostr Account private key must be added in UI for CardaNostra to function.")                
+        logger.warning("Nostr Account private key must be added in UI for CardaNostra to function.")
+        return       
     if len(relays) == 0:
         logger.warning("At least 1 Nostr Relay must be added for CardaNostra to function.")              
     # just the keys, change to profile?
@@ -82,7 +83,7 @@ async def start_bot():
     if as_user and relays:
         logger.debug('monitoring for events from or to account %s on relays %s'
                     % (as_user.public_key_hex(), relays))
-    await clients.run()          
+        await clients.run()         
 
 
 async def restart_bot():

@@ -6,15 +6,28 @@
 >
   <q-card>
     <p>
-      <q-card-section>
+      <q-card-section>        
+          CardaNostra<br />
+          <small>
+            Created by: 
+            <a
+              class="text-secondary"
+              target="_blank"
+              style="color: unset"
+              href="https://github.com/ponthief"
+              >Ponthief</a
+            >
+            </small
+          >
+          <br />       
         <strong>Usage</strong><br />
 
-        1. Add Nostr Bot account private key ('Nsec')\<br />
-        2. Add Nostr Relay for Bot account to connect to \<br />
-        3. Fill the options for your BOLTCARD<br />
-        - enter UID<br />
-        - enter Nostr npub from where you will control the card<br />
-        - enter card Name to use when<br />
+        1. Add Nostr Account - private key ('Nsec')<br />
+        2. Add Nostr Relay(s) for Account to  connect to<br />
+        3. Add existing BOLTCARD:<br />
+        - enter card's UID<br />
+        - enter Nostr 'npub' of the user who owns the card<br />
+        - enter card Name to use when issuing commands via Nostr<br />
                                
       </q-card-section>
     </p>
@@ -27,115 +40,92 @@
   label="API info"
   :content-inset-level="0.5"
 >
-  <q-btn flat label="Swagger API" type="a" href="../docs#/nostrnip5"></q-btn>
-  <q-expansion-item group="api" dense expand-separator label="List Domains">
+  <q-btn flat label="Swagger API" type="a" href="../docs#/nostrboltcardbot"></q-btn>
+  <q-expansion-item group="api" dense expand-separator label="List Accounts">
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /nostrnip5/api/v1/domains</code
+          ><span class="text-blue">GET</span> /nostrboltcardbot/api/v1/accounts</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>[&lt;domain_object&gt;, ...]</code>
+        <code>[&lt;account_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}nostrnip5/api/v1/domains -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}nostrboltcardbot/api/v1/accounts -H
+          "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
 
-  <q-expansion-item group="api" dense expand-separator label="List Addresses">
+  <q-expansion-item group="api" dense expand-separator label="List Relays">
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span> /nostrnip5/api/v1/addresses</code
+          ><span class="text-blue">GET</span> /nostrboltcardbot/api/v1/relays</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>[&lt;address_object&gt;, ...]</code>
+        <code>[&lt;relay_object&gt;, ...]</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url }}nostrnip5/api/v1/addresses -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X GET {{ request.base_url }}nostrboltcardbot/api/v1/relays -H
+          "X-Api-Key: &lt;admin_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>  
+
+  <q-expansion-item group="api" dense expand-separator label="Add Account">
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">POST</span> /nostrboltcardbot/api/v1/account</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <code>{account_object}</code>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X POST {{ request.base_url }}nostrboltcardbot/api/v1/account -H
+          "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
   </q-expansion-item>
 
-  <q-expansion-item group="api" dense expand-separator label="Fetch Domain">
-    <q-card>
-      <q-card-section>
-        <code
-          ><span class="text-blue">GET</span>
-          /nostrnip5/api/v1/domain/{domain_id}</code
-        >
-        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 200 OK (application/json)
-        </h5>
-        <code>{domain_object}</code>
-        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code
-          >curl -X GET {{ request.base_url }}nostrnip5/api/v1/domain/{domain_id}
-          -H "X-Api-Key: &lt;invoice_key&gt;"
-        </code>
-      </q-card-section>
-    </q-card>
-  </q-expansion-item>
-
-  <q-expansion-item group="api" dense expand-separator label="Create Domain">
-    <q-card>
-      <q-card-section>
-        <code
-          ><span class="text-blue">POST</span> /nostrnip5/api/v1/domain</code
-        >
-        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
-        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
-        <h5 class="text-caption q-mt-sm q-mb-none">
-          Returns 200 OK (application/json)
-        </h5>
-        <code>{domain_object}</code>
-        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
-        <code
-          >curl -X POST {{ request.base_url }}nostrnip5/api/v1/domain -H
-          "X-Api-Key: &lt;invoice_key&gt;"
-        </code>
-      </q-card-section>
-    </q-card>
-  </q-expansion-item>
-
-  <q-expansion-item group="api" dense expand-separator label="Create Address">
+  <q-expansion-item group="api" dense expand-separator label="Add Relay">
     <q-card>
       <q-card-section>
         <code
           ><span class="text-blue">POST</span>
-          /nostrnip5/api/v1/domain/{domain_id}/address</code
+          /nostrboltcardbot/api/v1/relay</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
-        <code>{"X-Api-Key": &lt;invoice_key&gt;}</code><br />
+        <code>{"X-Api-Key": &lt;admin_key&gt;}</code><br />
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{address_object}</code>
+        <code>{relay_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}nostrnip5/api/v1/domain/{domain_id}/address -H "X-Api-Key:
-          &lt;invoice_key&gt;"
+          }}nostrboltcardbot/api/v1/relay -H "X-Api-Key:
+          &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -145,25 +135,25 @@
     group="api"
     dense
     expand-separator
-    label="Create Invoice Payment"
+    label="Add Card"
   >
     <q-card>
       <q-card-section>
         <code
           ><span class="text-blue">POST</span>
-          /invoices/api/v1/invoice/{invoice_id}/payments</code
+          /nostrboltcardbot/api/v1/register</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">
           Returns 200 OK (application/json)
         </h5>
-        <code>{payment_object}</code>
+        <code>{card_object}</code>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
           >curl -X POST {{ request.base_url
-          }}invoices/api/v1/invoice/{invoice_id}/payments -H "X-Api-Key:
-          &lt;invoice_key&gt;"
+          }}nostrboltcardbot/api/v1/register -H "X-Api-Key:
+          &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
@@ -173,13 +163,13 @@
     group="api"
     dense
     expand-separator
-    label="Check Invoice Payment Status"
+    label="Delete Account"
   >
     <q-card>
       <q-card-section>
         <code
-          ><span class="text-blue">GET</span>
-          /nostrnip5/api/v1/domain/{domain_id}/payments/{payment_hash}</code
+          ><span class="text-blue">DELETE</span>
+          /nostrboltcardbot/api/v1/accounts/{id}</code
         >
         <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
@@ -188,9 +178,87 @@
         </h5>
         <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
         <code
-          >curl -X GET {{ request.base_url
-          }}nostrnip5/api/v1/domain/{domain_id}/payments/{payment_hash} -H
-          "X-Api-Key: &lt;invoice_key&gt;"
+          >curl -X DELETE {{ request.base_url
+          }}nostrboltcardbot/api/v1/accounts/{id} -H
+          "X-Api-Key: &lt;admin_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete Relay"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">DELETE</span>
+          /nostrboltcardbot/api/v1/relays/{id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.base_url
+          }}nostrboltcardbot/api/v1/relays/{id} -H
+          "X-Api-Key: &lt;admin_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Delete Card"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">DELETE</span>
+          /nostrboltcardbot/api/v1/cards/{id}</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X DELETE {{ request.base_url
+          }}nostrboltcardbot/api/v1/cards/{card_uid} -H
+          "X-Api-Key: &lt;admin_key&gt;"
+        </code>
+      </q-card-section>
+    </q-card>
+  </q-expansion-item>
+  <q-expansion-item
+    group="api"
+    dense
+    expand-separator
+    label="Restart Nostr Connection"
+  >
+    <q-card>
+      <q-card-section>
+        <code
+          ><span class="text-blue">PUT</span>
+          /nostrboltcardbot/api/v1/restart</code
+        >
+        <h5 class="text-caption q-mt-sm q-mb-none">Headers</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Body (application/json)</h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">
+          Returns 200 OK (application/json)
+        </h5>
+        <h5 class="text-caption q-mt-sm q-mb-none">Curl example</h5>
+        <code
+          >curl -X PUT {{ request.base_url
+          }}nostrboltcardbot/api/v1/restart -H
+          "X-Api-Key: &lt;admin_key&gt;"
         </code>
       </q-card-section>
     </q-card>
