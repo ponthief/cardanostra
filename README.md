@@ -1,5 +1,5 @@
-# CardaNostra - <small>[LNbits](https://github.com/lnbits/lnbits) extension</small>
-<small>For more about LNBits extensions check [this tutorial](https://youtu.be/_sW7miqaXJc)</small>
+# CardaNostra - Nostr BoltCard Managament - <small>[LNbits](https://github.com/lnbits/lnbits) extension</small>
+<small>For more about BoltCard LNBits extensions check [this tutorial](https://youtu.be/_sW7miqaXJc)</small>
 
 
 This extension allows you to control your [Bolt Card](https://github.com/boltcard) via Nostr account. 
@@ -30,5 +30,6 @@ Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
     - Enter Card Name - this is the name that the user would like his card to be known as i.e. MyLnBitsBoltCard
     - Enter NPub - this is Public Key for the Nostr Account that also "owns" the card and wishes to control it via Bot
     
+Once all 3 items are added into LNbits users with cards who are following LNbits Nostr account will be able to manage their cards by sending direct encrypted messages:
 
-
+<img src= "https://github.com/ponthief/carda/blob/main/static/cardanostra_menu.jpg" width="350" height="550">
