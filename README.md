@@ -31,6 +31,7 @@ Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
     - Enter NPub - this is Public Key for the Nostr Account that also "owns" the card and wishes to control it via Bot
     
 Once all 3 items are added into LNbits users with cards who are following LNbits Nostr account will be able to manage their cards by sending direct encrypted messages:
-
+<p float="left">
 <img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_menu.jpg" width="300" height="575">
 <img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_commands.jpg" width="300" height="575">
+</p>
