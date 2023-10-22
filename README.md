@@ -32,4 +32,4 @@ Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
     
 Once all 3 items are added into LNbits users with cards who are following LNbits Nostr account will be able to manage their cards by sending direct encrypted messages:
 
-<img src= "https://github.com/ponthief/carda/blob/main/static/cardanostra_menu.jpg" width="350" height="550">
+<img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_menu.jpg" width="350" height="550">
