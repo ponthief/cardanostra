@@ -1,6 +1,7 @@
 {
   "name": "CardaNostra",
-  "short_description": "Control BoltCard via Nostr",
+  "short_description": "Nostr BoltCards Manager",
 	"tile": "/cardanostra/static/bitcoin-extension.png",
-  "contributors": ["ponthief"]
+  "contributors": ["ponthief"],
+  "min_lnbits_version": "0.11.1"
 }
