@@ -65,7 +65,7 @@ def validate_account(data: NostrAccount):
 
 # Account Control
 
-@cardanostra_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK,)
+@cardanostra_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK)
 async def api_accounts(wallet: WalletTypeInfo = Depends(require_admin_key)):   
     return [account.dict() for account in await get_nostr_accounts()] 
 

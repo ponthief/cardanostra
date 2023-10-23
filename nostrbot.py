@@ -40,10 +40,10 @@ class NostrBot(EventHandler):
                 self.accept_event(the_client, sub_id, evt) is False:
             return
 
-        logger.debug('BotEventHandler::do_event - received event %s' % evt)
+        # logger.debug('BotEventHandler::do_event - received event %s' % evt)
         prompt_text, response_text = await self.handle_bot_command(evt)
         # logger.debug('BotEventHandler::do_event - prompt = %s' % prompt_text)
-        logger.debug('BotEventHandler::do_event - response = %s' % response_text)
+        # logger.debug('BotEventHandler::do_event - response = %s' % response_text)
 
         # create and send
         response_event = Event(
