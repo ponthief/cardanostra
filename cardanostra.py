@@ -17,7 +17,7 @@ from .crud import (
 )
 
 
-class NostrBot(EventHandler):
+class CardaNostra(EventHandler):
 
     def __init__(self, as_user: Keys, clients: ClientPool):
         self._as_user = as_user

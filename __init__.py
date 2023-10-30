@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 from typing import List
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
@@ -26,12 +27,13 @@ def cardanostra_renderer():
     return template_renderer(["lnbits/extensions/cardanostra/templates"])
 
 
-from .tasks import start_bot
+from .tasks import start_bot, run_at, restart_bot
 from .views import *  # noqa: F401,F403
 from .views_api import *  # noqa: F401,F403
 
 
 def cardanostra_start():
+    time1 = datetime.datetime.combine(datetime.date.today(), datetime.time(10))
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     task1.set_name("CardaNostra")           

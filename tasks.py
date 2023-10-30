@@ -1,8 +1,9 @@
 import asyncio
 from typing import Optional
 from loguru import logger
-from .nostrbot import NostrBot
+from .cardanostra import CardaNostra
 import httpx
+import datetime
 from lnbits.extensions.cardanostra.monstr.util import util_funcs
 from lnbits.extensions.cardanostra.monstr.client.client import Client, ClientPool
 from lnbits.extensions.cardanostra.monstr.event_handlers import LastEventHandler
@@ -40,7 +41,7 @@ async def start_bot():
     last_since = LastEventHandler()   
     clients = ClientPool(clients=relays.split(','))
     as_user = Keys(accounts[0])
-    handler = NostrBot(as_user=as_user, clients=clients)                 
+    handler = CardaNostra(as_user=as_user, clients=clients)                 
     sub_id = None   
     NClients = clients
 
@@ -76,6 +77,7 @@ async def restart_bot():
     if NClients:
         NClients.end()
     NClients = None
+    logger.info("Restarting CardaNostra")
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     task1.set_name("CardaNostra")            
