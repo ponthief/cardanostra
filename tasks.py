@@ -71,9 +71,9 @@ async def start_bot():
 
 
 async def every(__seconds: float, func, *args, **kwargs):
-    while True:
-        await func(*args, **kwargs)
+    while True:        
         await asyncio.sleep(__seconds)
+        await func(*args, **kwargs)
 
 
 async def restart_bot():
