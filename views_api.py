@@ -185,5 +185,4 @@ async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):
 @cardanostra_ext.put("/api/v1/restart")
 async def api_restart_bot(wallet: WalletTypeInfo = Depends(require_admin_key)):    
     await restart_bot()
-    return {"success": True}
-    # return "Nostr connections restarted.", HTTPStatus.OK    
+    return {"success": True}  

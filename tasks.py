@@ -3,7 +3,6 @@ from typing import Optional
 from loguru import logger
 from .cardanostra import CardaNostra
 import httpx
-import datetime
 from lnbits.extensions.cardanostra.monstr.util import util_funcs
 from lnbits.extensions.cardanostra.monstr.client.client import Client, ClientPool
 from lnbits.extensions.cardanostra.monstr.event_handlers import LastEventHandler
@@ -26,8 +25,7 @@ async def setup_bot():
     return accounts, relays
 
 
-async def start_bot():     
-    #args = get_args()  
+async def start_bot():          
     global NClients       
     logger.debug(f"starting cardanostra")
     accounts, relays = await setup_bot() 
@@ -70,6 +68,12 @@ async def start_bot():
         logger.debug('monitoring for events from or to account %s on relays %s'
                     % (as_user.public_key_hex(), relays))
         await clients.run()         
+
+
+async def every(__seconds: float, func, *args, **kwargs):
+    while True:
+        await func(*args, **kwargs)
+        await asyncio.sleep(__seconds)
 
 
 async def restart_bot():

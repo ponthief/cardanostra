@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 from typing import List
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
@@ -27,14 +26,16 @@ def cardanostra_renderer():
     return template_renderer(["lnbits/extensions/cardanostra/templates"])
 
 
-from .tasks import start_bot, run_at, restart_bot
+from .tasks import start_bot, restart_bot, every
 from .views import *  # noqa: F401,F403
 from .views_api import *  # noqa: F401,F403
 
 
-def cardanostra_start():
-    time1 = datetime.datetime.combine(datetime.date.today(), datetime.time(10))
+def cardanostra_start():    
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
-    task1.set_name("CardaNostra")           
+    task1.set_name("CardaNostra") 
+    # restart Nostr relay connection once a day as it's getting diconnected
+    task2 = loop.create_task(every(24 * 3600, restart_bot))          
     scheduled_tasks.append(task1)
+    scheduled_tasks.append(task2)
