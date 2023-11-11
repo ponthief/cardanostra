@@ -176,8 +176,7 @@ async def delete_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_ad
     return "", HTTPStatus.NO_CONTENT 
 
 @cardanostra_ext.get("/api/v1/cards", status_code=HTTPStatus.OK)
-async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):   
-    logger.debug([card.dict() for card in await get_cards()])
+async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):    
     return [card.dict() for card in await get_cards()]  
     
 # Bot 
