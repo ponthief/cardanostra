@@ -2,7 +2,6 @@ import asyncio
 from typing import List
 from fastapi import APIRouter
 from fastapi.staticfiles import StaticFiles
-
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
 from lnbits.tasks import catch_everything_and_restart
@@ -33,8 +32,7 @@ from .views_api import *  # noqa: F401,F403
 
 def cardanostra_start():    
     loop = asyncio.get_event_loop()
-    task1 = loop.create_task(catch_everything_and_restart(start_bot))
-    task1.set_name("CardaNostra") 
-    # restart Nostr relay connection once every 8 hours as it's getting disconnected
-    task2 = loop.create_task(every(8 * 3600, restart_bot))          
-    scheduled_tasks.append[task1, task2]    
+    task1 = loop.create_task(catch_everything_and_restart(start_bot))    
+    # restart Nostr relay connection once every 8 hours as it's getting disconnected         
+    task2 = loop.create_task(every(8 * 3600, restart_bot))              
+    scheduled_tasks.extend([task1, task2])

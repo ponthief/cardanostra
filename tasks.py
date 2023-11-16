@@ -71,8 +71,8 @@ async def start_bot():
 
 
 async def every(__seconds: float, func, *args, **kwargs):
-    while True:        
-        await asyncio.sleep(__seconds)
+    while True:                
+        await asyncio.sleep(__seconds)        
         await func(*args, **kwargs)
 
 
@@ -83,6 +83,5 @@ async def restart_bot():
     NClients = None
     logger.info("Restarting CardaNostra")
     loop = asyncio.get_event_loop()
-    task1 = loop.create_task(catch_everything_and_restart(start_bot))
-    task1.set_name("CardaNostra")            
+    task1 = loop.create_task(catch_everything_and_restart(start_bot))                
     scheduled_tasks.append(task1)
