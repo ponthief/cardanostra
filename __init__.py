@@ -35,7 +35,6 @@ def cardanostra_start():
     loop = asyncio.get_event_loop()
     task1 = loop.create_task(catch_everything_and_restart(start_bot))
     task1.set_name("CardaNostra") 
-    # restart Nostr relay connection once a day as it's getting diconnected
-    task2 = loop.create_task(every(24 * 3600, restart_bot))          
-    scheduled_tasks.append(task1)
-    scheduled_tasks.append(task2)
+    # restart Nostr relay connection once every 8 hours as it's getting disconnected
+    task2 = loop.create_task(every(8 * 3600, restart_bot))          
+    scheduled_tasks.append[task1, task2]    

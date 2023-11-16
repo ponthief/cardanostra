@@ -27,7 +27,7 @@ async def setup_bot():
 
 async def start_bot():          
     global NClients       
-    logger.debug(f"starting cardanostra")
+    logger.info(f"starting cardanostra")
     accounts, relays = await setup_bot() 
     if len(accounts) == 0:
         logger.warning("Nostr Account private key must be added in UI for CardaNostra to function.")
@@ -65,7 +65,7 @@ async def start_bot():
 
     # start the clients
     if as_user and relays:
-        logger.debug('monitoring for events from or to account %s on relays %s'
+        logger.info('monitoring for events from or to account %s on relays %s'
                     % (as_user.public_key_hex(), relays))
         await clients.run()         
 
