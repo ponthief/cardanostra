@@ -1,12 +1,11 @@
 from datetime import datetime
-import base64
 import json
 import logging
 from json import JSONDecodeError
 import secp256k1
 import hashlib
-from .util import util_funcs
-from .encrypt import SharedEncrypt, Keys
+from copy import copy
+from ..util import util_funcs
 
 
 class EventTags:
@@ -98,7 +97,6 @@ class EventTags:
         for c_tag in self._tags:
             yield c_tag
 
-
 class Event:
     """
         base class for nost events currently used just as placeholder for the kind type consts
@@ -116,6 +114,12 @@ class Event:
     KIND_REACTION = 7
     # NIP 58 badges https://github.com/nostr-protocol/nips/pull/229
     KIND_BADGE = 8
+
+    # NIP59 seal and gift wrap as defined in  https://github.com/nostr-protocol/nips/blob/master/59.md
+    KIND_SEAL = 13
+    KIND_RUMOUR = 14
+    KIND_GIFT_WRAP = 1059
+
     # NIP 28 events for group chat
     # https://github.com/nostr-protocol/nips/blob/af6893145f9a4a63be3d90beffbcfd4d90e872ae/28.md
     KIND_CHANNEL_CREATE = 40
@@ -124,7 +128,14 @@ class Event:
     KIND_CHANNEL_HIDE = 43
     KIND_CHANNEL_MUTE = 44
 
-    # nip42 auth event
+    # used for messaging in in remote signing as nip46, should be encryped as nip4
+    # https://github.com/nostr-protocol/nips/blob/master/46.md
+    KIND_NIP46 = 24133
+
+    # nip 98 http auth header event https://github.com/nostr-protocol/nips/blob/master/98.md
+    KIND_HTTP_AUTH = 27235
+
+    # nip42 auth event https://github.com/nostr-protocol/nips/blob/master/42.md
     KIND_AUTH = 22242
 
     # a wrapped event to be republished see https://github.com/motorina0/nips/blob/republish_events/705.md
@@ -133,24 +144,81 @@ class Event:
     # a raw bitcoin transaction
     KIND_BTC_TX = 28333
 
+    # user status events https://github.com/nostr-protocol/nips/blob/master/38.md
+    KIND_USER_STATUS = 30315
+
+    # @staticmethod
+    # def from_JSON(evt_json):
+    #     # TODO: remove!!!! change to using load in place
+    #     # this was never really from json anway it's from dict
+    #     return Event(
+    #         id=evt_json['id'],
+    #         sig=evt_json['sig'],
+    #         kind=evt_json['kind'],
+    #         content=evt_json['content'],
+    #         tags=evt_json['tags'],
+    #         pub_key=evt_json['pubkey'],
+    #         created_at=evt_json['created_at']
+    #     )
+
     @staticmethod
-    def from_JSON(evt_json):
+    def load(event_data: str | dict, validate=False) -> 'Event':
         """
-        TODO: add option to verify sig/eror if invalid?
-        creates an event object from json - at the moment this must be a full event, has id and has been signed,
-        may add option for presigned event in future
-        :param evt_json: json to create the event, as you'd recieve from subscription
-        :return:
+            return a Event object either from a dict or json str this replaces the old from_JSON method
+            that was actually just from a string...
+            if validate is set True will test the event sig, if it's not None will be returned
+
         """
-        return Event(
-            id=evt_json['id'],
-            sig=evt_json['sig'],
-            kind=evt_json['kind'],
-            content=evt_json['content'],
-            tags=evt_json['tags'],
-            pub_key=evt_json['pubkey'],
-            created_at=evt_json['created_at']
+        if isinstance(event_data, str):
+            try:
+                event_data = json.loads(event_data)
+            except Exception as e:
+                event_data = {}
+
+        id = None
+        if 'id' in event_data:
+            id = event_data['id']
+
+        sig = None
+        if 'sig' in event_data:
+            sig = event_data['sig']
+
+        kind = None
+        if 'kind' in event_data:
+            kind = event_data['kind']
+
+        content = None
+        if 'content' in  event_data:
+            content = event_data['content']
+
+        tags = None
+        if 'tags' in event_data:
+            tags = event_data['tags']
+
+        pub_key = None
+        if 'pubkey' in event_data:
+            pub_key = event_data['pubkey']
+
+        created_at = None
+        if 'created_at' in event_data:
+            created_at = event_data['created_at']
+
+        ret = Event(
+            id=id,
+            sig=sig,
+            kind=kind,
+            content=content,
+            tags=tags,
+            pub_key=pub_key,
+            created_at=created_at
         )
+
+        # None ret if validating and the evnt is not valid
+        if validate is True and ret.is_valid() is False:
+            ret = None
+
+        return ret
+
 
     @staticmethod
     def is_event_id(event_id: str):
@@ -196,7 +264,13 @@ class Event:
         :param evts:    events to be sorted either {} or Event
         :param reverse: True is newest first which is default
         :param inplace: act on evts or create new []
-        :return:
+        :return: sorted events
+
+        NOTE - if you're only working with events and inplace is fine you can just use standard python sort
+        i.e
+            evts = [Events]
+            evts.sort()
+
         """
         # sort events newest to oldest
         def sort_func(evt: Event):
@@ -243,24 +317,6 @@ class Event:
 
         return ret
 
-    @staticmethod
-    def decrypt_nip4(evt: 'Event', keys: Keys, check_kind=True) -> 'Event':
-        """
-        returns a copy of evt but with the content decrtpted as NIP4
-        """
-
-        # make a copy
-        ret = Event.from_JSON(evt.event_data())
-        # now decrypt the content
-        pub_k = evt.pub_key
-        if pub_k == keys.public_key_hex():
-            pub_k = evt.p_tags[0]
-
-        ret.content = evt.decrypted_content(priv_key=keys.private_key_hex(),
-                                            pub_key=pub_k,
-                                            check_kind=check_kind)
-        return ret
-
     def __init__(self, id=None, sig=None, kind=None, content=None, tags=None, pub_key=None, created_at=None):
         self._id = id
         self._sig = sig
@@ -272,11 +328,16 @@ class Event:
         elif isinstance(self._created_at, datetime):
             self._created_at = util_funcs.date_as_ticks(self._created_at)
 
-        self._content = content
+        # content forced to str
+        self._content = str(content)
 
         self._pub_key = pub_key
 
-        self._tags = EventTags(tags)
+        if isinstance(tags, EventTags):
+            # TODO - change to copy instead of same obj?
+            self._tags = tags
+        else:
+            self._tags = EventTags(tags)
 
     def serialize(self):
         """
@@ -304,6 +365,11 @@ class Event:
         evt_str = self.serialize()
         self._id = hashlib.sha256(evt_str.encode('utf-8')).hexdigest()
 
+    def _invalidate(self):
+        # should be called on any property set, as this will no longer be valid
+        self._id = None
+        self._sig = None
+
     def sign(self, priv_key):
         """
             see https://github.com/fiatjaf/nostr/blob/master/nips/01.md
@@ -311,7 +377,7 @@ class Event:
 
             if you were doing we an existing event for some reason you'd need to change the pub_key
             as else the sig we give won't be as expected
-
+            Eventually it might be move this into signer and always exepct use of signer...
         """
         self._get_id()
 
@@ -338,7 +404,7 @@ class Event:
 
         return ret
 
-    def event_data(self):
+    def data(self):
         return {
             'id': self._id,
             'pubkey': self._pub_key,
@@ -443,8 +509,14 @@ class Event:
         return self._tags
 
     @tags.setter
-    def tags(self, tags) -> EventTags:
-        self._tags = EventTags(tags)
+    def tags(self, tags):
+        self._invalidate()
+        # already a EventTags obj
+        if isinstance(tags, EventTags):
+            self._tags = tags
+        # should be [[]]
+        else:
+            self._tags = EventTags(tags)
 
     def get_tags(self, tag_name):
         return self._tags.get_tags(tag_name)
@@ -479,11 +551,18 @@ class Event:
 
     @pub_key.setter
     def pub_key(self, pub_key):
+        self._invalidate()
         self._pub_key = pub_key
 
     @property
     def id(self):
+        if self._id is None:
+            self._get_id()
         return self._id
+
+    @id.setter
+    def id(self, id):
+        self._id = id
 
     @property
     def short_id(self):
@@ -496,10 +575,11 @@ class Event:
 
     @created_at.setter
     def created_at(self, dt):
+        self._invalidate()
         if dt is None or not isinstance(dt, (datetime, int)):
-            raise ValueError('Event::created_at: invalid value for created_at - %s' % dt)
+            raise ValueError(f'Event::created_at: invalid value for created_at - {dt}')
         elif isinstance(dt, datetime):
-            self._created_at = util_funcs.date_as_ticks(self._created_at)
+            self._created_at = util_funcs.date_as_ticks(dt)
         elif isinstance(dt, int):
             self._created_at = dt
 
@@ -508,66 +588,81 @@ class Event:
         return self._created_at
 
     @property
-    def kind(self):
+    def kind(self) -> int:
         return self._kind
 
+    @kind.setter
+    def kind(self, kind: int):
+        self._invalidate()
+        self._kind = kind
+
     @property
-    def content(self):
+    def content(self) -> str:
         return self._content
 
-    def decrypted_content(self, priv_key, pub_key, check_kind=True):
-        """
-        dycrypts a NIP04 encoded event...
-        :param priv_key:
-        :return:
-        """
-        if check_kind and self.kind not in (Event.KIND_ENCRYPT, Event.KIND_REPUBLISH):
-            raise Exception('attempt to decrypt non encrypted event %s' % self.id)
-
-        my_enc = SharedEncrypt(priv_key)
-        msg_split = self.content.split('?iv')
-
-        try:
-            text = base64.b64decode(msg_split[0])
-            iv = base64.b64decode(msg_split[1])
-
-            if len(pub_key) == 64:
-                pub_key = '02' + pub_key
-
-            ret = my_enc.decrypt_message(text, iv, pub_key).decode('utf8')
-
-        except Exception as e:
-            raise Exception('unable to decrypt event %s using given priv_k' % priv_key)
-
-        return ret
-
-    def encrypt_content(self, priv_key, pub_key):
-        my_enc = SharedEncrypt(priv_key)
-        if len(pub_key) == 64:
-            pub_key = '02' + pub_key
-
-        my_enc.derive_shared_key(pub_key)
-
-        crypt_message = my_enc.encrypt_message(bytes(self.content.encode('utf8')))
-        enc_message = base64.b64encode(crypt_message['text'])
-        iv_env = base64.b64encode(crypt_message['iv'])
-
-        return '%s?iv=%s' % (enc_message.decode(), iv_env.decode())
-
-    # FIXME:
-    #  setters should probably invalidate the id and sig as they'll need to be done again,
-    #  though only important if going to post
     @content.setter
     def content(self, content):
+        self._invalidate()
         self._content = content
 
     @property
     def sig(self):
         return self._sig
 
+    @sig.setter
+    def sig(self, sig):
+        self._sig = sig
+
     def __str__(self):
         ret = super(Event, self).__str__()
-        # on signed events we can retrn something more useful
-        if self.id:
-            ret =  '%s@%s' % (self.id, self.created_at)
+        # hopefully id is set but it might not be if the event is being prepeped
+        # perhaps we should check pubkey here instead because if that exists we can gen the id
+        if self._id is not None:
+            ret = f'{self.id}@{self.created_at}'
         return ret
+
+    def add_pow(self, target: int = 4):
+        if target < 4 or target > 64:
+            raise ValueError(f"target should be in range 4 to 64 got {target}")
+
+        val = 0
+        leading_z = 0
+        original_tags = self.tags.tags[:]
+        nonce_template = original_tags + [['nonce', '', f'{target}']]
+
+        while leading_z < target:
+            nonce_template[-1][1] = f'{val}'
+            self.tags = nonce_template
+
+            # Directly convert the hexadecimal id to an integer and calculate leading zeros
+            leading_z = (256 - int(self.id, 16).bit_length())
+            val += 1
+
+    @property
+    def pow(self):
+        # returns the events pow value - not necessarily targeted
+        return 256 - int(self.id, 16).bit_length()
+
+    def nip13_valid_pow(self, min_pow):
+        """
+            returns True if this event has valid targeted pow and that pow is >= min_pow
+            https://github.com/nostr-protocol/nips/blob/master/13.md
+            NOTE you also need to check if the event is valid!
+        """
+        ret = False
+        pow_value = self.pow
+        try:
+            nonce = self.get_tags('nonce')[0][1]
+            target_pow = int(nonce)
+            ret = pow_value >= target_pow >= min_pow
+        except Exception as e:
+            pass
+        return ret
+
+    def __lt__(self, other: 'Event'):
+        # added so we can support basic sorting, newest events will be first
+        ret = True
+        if self.created_at_ticks < other.created_at_ticks:
+            ret = False
+        return ret
+

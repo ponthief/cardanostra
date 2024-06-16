@@ -53,7 +53,7 @@ class CardaNostra(EventHandler):
             pub_key=self._as_user.public_key_hex()
         )
 
-        if response_event.kind == Event.KIND_ENCRYPT:
+        if response_event.kind == Event.KIND_GIFT_WRAP:
             response_event.content = response_event.encrypt_content(priv_key=self._as_user.private_key_hex(),
                                                                     pub_key=evt.pub_key)
 
@@ -61,7 +61,7 @@ class CardaNostra(EventHandler):
         self._clients.publish(response_event)
         if self._store:
             # store the txt decrypted?
-            if evt.kind == Event.KIND_ENCRYPT:
+            if evt.kind == Event.KIND_GIFT_WRAP:
                 evt.content = prompt_text
                 response_event.content = response_text
 
@@ -76,16 +76,16 @@ class CardaNostra(EventHandler):
 
     def menu(self):
         return """ ***** CardaNostra Commands *****
-/help - shows this menu
-/freeze <card_name> - disables card
-/enable <card_name> - (re)enables card
-/get <card_name> - shows card settings
-/tx_max <card_name> <sats> - sets new tx maximum
-/day_max <card_name> <sats> - sets new daily max
-/list - displays all the cards registered to pub key
-/register <uid> <card_name> - register new card
-/bal <card_name> - display card balance
-/spent <card_name> - total spent today
+            /help - shows this menu
+            /freeze <card_name> - disables card
+            /enable <card_name> - (re)enables card
+            /get <card_name> - shows card settings
+            /tx_max <card_name> <sats> - sets new tx maximum
+            /day_max <card_name> <sats> - sets new daily max
+            /list - displays all the cards registered to pub key
+            /register <uid> <card_name> - register new card
+            /bal <card_name> - display card balance
+            /spent <card_name> - total spent today
 """
 
     async def get_card_details(self, card_name, pub_key):                         

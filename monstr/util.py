@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .event import Event
+    from ..event.event import Event
 
 import time
 import sys
@@ -11,7 +11,7 @@ from hashlib import md5
 import logging
 import os
 from pathlib import Path
-from .db.db import SQLiteDatabase
+from ..db.db import SQLiteDatabase
 
 """
     just a place to hand any util funcs that don't easily fit anywhere else
@@ -39,7 +39,7 @@ class util_funcs:
         return ret
 
     @staticmethod
-    def str_tails(the_str, taillen=4):
+    def str_tails(the_str, taillen=4, spacer='...'):
         # returns str start...end chars for taillen
         ret = '?...?'
 
@@ -47,7 +47,9 @@ class util_funcs:
             if len(the_str) < (taillen*2)+3:
                 ret = the_str
             else:
-                ret = '%s...%s' % (the_str[:taillen], the_str[len(the_str)-taillen:])
+                ret = (f'{the_str[:taillen]}'
+                       f'{spacer}'
+                       f'{the_str[len(the_str)-taillen:]}')
         return ret
 
     @staticmethod
@@ -84,19 +86,22 @@ class util_funcs:
                     print('error trying to create work sub director %s - %s' % (the_sub_dir, pe))
                     sys.exit(os.EX_CANTCREAT)
 
+
+
+
     @staticmethod
     def create_sqlite_store(db_file):
-        from .event.persist_sqlite import RelaySQLiteEventStore
-        from .ident.persist import SQLiteProfileStore
-        from .channels.persist import SQLiteSQLChannelStore
-        from .settings.persist import SQLiteSettingsStore
+        from monstr.event.persist_sqlite import RelaySQLiteEventStore
+        from monstr.ident.persist import SQLiteProfileStore
+        # from monstr.channels.persist import SQLiteSQLChannelStore
+        from monstr.settings.persist import SQLiteSettingsStore
         my_events = RelaySQLiteEventStore(db_file)
         if not my_events.exists():
             my_events.create()
             my_profiles = SQLiteProfileStore(db_file)
             my_profiles.create()
-            my_channels = SQLiteSQLChannelStore(db_file)
-            my_channels.create()
+            # my_channels = SQLiteSQLChannelStore(db_file)
+            # my_channels.create()
             db = SQLiteDatabase(db_file)
             my_settings = SQLiteSettingsStore(db_file)
             my_settings.create()

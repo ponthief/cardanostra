@@ -48,7 +48,7 @@ async def start_bot():
         sub_id = the_client.subscribe(sub_id='bot_watch',
                              handlers=[handler],
                              filters={
-                                 'kinds': [Event.KIND_ENCRYPT],
+                                 'kinds': [Event.KIND_GIFT_WRAP],
                                  '#p': [as_user.public_key_hex()]                                                            
                              })
         if last_since.get_last_event_dt(the_client):

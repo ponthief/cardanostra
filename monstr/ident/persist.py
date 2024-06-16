@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from ..ident.profile import Profile, ProfileList, Contact, ContactList
 from ..event.persist import ClientEventStoreInterface
-from ..event import Event
+from ..event.event import Event
 from ..db.db import Database, SQLiteDatabase
 from ..data.data import DataSet
 from ..util import util_funcs

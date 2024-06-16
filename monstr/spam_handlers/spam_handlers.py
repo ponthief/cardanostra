@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from ..event import Event
+from monstr.event.event import Event
 
 
 class SpamHandlerInterface(ABC):

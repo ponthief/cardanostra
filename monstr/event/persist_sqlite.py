@@ -188,3 +188,4 @@ class ARelaySQLiteEventStore(ASQLEventStore, ARelayEventStoreInterface, ABC):
 #     def destroy(self):
 #         os.remove(self._db.file)
 
+

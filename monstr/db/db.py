@@ -165,7 +165,7 @@ class SQLiteDatabase(Database, ABC):
         # if not catch_err and was_err:
         #     raise was_err
 
-        return ret
+        #return ret
 
     def execute_batch(self, batch):
         """
@@ -304,7 +304,7 @@ class ASQLiteDatabase(ADatabase, ABC):
         # if not catch_err and was_err:
         #     raise was_err
 
-        return ret
+        # return ret
 
     async def execute_batch(self, batch):
         """
@@ -518,6 +518,7 @@ class QueryFromFilter:
 
     def get_query(self):
         return self._construct()
+
 
 
 

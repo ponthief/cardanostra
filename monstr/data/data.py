@@ -541,3 +541,4 @@ class DataSet:
 		with open(filename, 'w', newline='\n') as csvfile:
 			my_csv = csv.writer(csvfile, delimiter=',')
 			my_csv.writerows(to_output)
+

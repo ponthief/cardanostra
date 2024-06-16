@@ -5,7 +5,9 @@
 
 """
 from __future__ import annotations
-from typing import Callable
+
+import copy
+# from typing import Callable
 import logging
 import aiohttp
 try:
@@ -14,10 +16,12 @@ except:
     pass
 import asyncio
 import json
+from typing import Callable
 from json import JSONDecodeError
-from datetime import datetime, timedelta
+from datetime import datetime
 from ..util import util_funcs
-from ..event import Event
+from ..event.event import Event
+from ..signing.signing import SignerInterface, BasicKeySigner
 from ..encrypt import Keys
 
 
@@ -189,10 +193,10 @@ class Client:
 
     async def _my_consumer(self, ws: aiohttp.ClientWebSocketResponse):
         while True:
-            await self._on_message(await ws.receive_json())
+            self._on_message(await ws.receive_json())
         # raise ConnectionError('Client::_my_consumer - server has closed the websocket')
 
-    async def _on_message(self, message):
+    def _on_message(self, message):
         # null/None message?
         if not message:
             return
@@ -202,7 +206,7 @@ class Client:
             if len(message) >= 1:
                 sub_id = message[1]
                 if self._read:
-                    await self._do_events(sub_id, message)
+                    self._do_events(sub_id, message)
             else:
                 logging.debug(f'Client::_on_message - not enough data in EVENT message - {message}')
 
@@ -259,7 +263,7 @@ class Client:
         except Exception as e:
             logging.debug(f'Client::_do_command error sending message {e}')
 
-    async def _do_events(self, sub_id, message):
+    def _do_events(self, sub_id, message):
         the_evt: Event
         if not self.have_sub(sub_id):
             logging.debug(
@@ -269,18 +273,27 @@ class Client:
 
         if self.have_sub(sub_id):
             the_sub = self._subs[sub_id]
+            the_evt = Event.load(message[2])
+            # bad json??
+            if the_evt is None:
+                return
             # still receiving stored events
             if the_sub['is_eose'] is False:
-                the_sub['events'].append(Event.from_JSON(message[2]))
+                the_sub['events'].append(the_evt)
                 the_sub['last_event'] = datetime.now()
 
             # receiving adhoc events
             else:
                 try:
-                    the_evt = Event.from_JSON(message[2])
                     for c_handler in the_sub['handlers']:
                         try:
-                            await c_handler.do_event(self, sub_id, the_evt)
+
+                            if callable(c_handler):
+                                c_handler(self, sub_id, the_evt)
+                            # should be a class with do_event defined (e.g. extends client.event_handlers.EventHandler)
+                            else:
+                                c_handler.do_event(self, sub_id, the_evt)
+
                         except Exception as e:
                             logging.debug(f'Client::_do_events in handler {c_handler} - {e}')
 
@@ -294,7 +307,7 @@ class Client:
             # self.unsubscribe(sub_id)
         else:
             the_sub = self._subs[sub_id]
-            if the_sub['is_eose'] is True and (self._on_eose or the_sub['is_func']):
+            if the_sub['is_eose'] is True and (self._on_eose or the_sub['eose_func']):
                 logging.debug(f'end of stored events for {sub_id} - already seen, maybe it was force timedout?')
             else:
                 # call the EOSE func if any
@@ -346,41 +359,60 @@ class Client:
 
     def publish(self, evt: Event):
         if self._write:
-            logging.debug('Client::publish - %s', evt.event_data())
+            logging.debug('Client::publish - %s', evt.data())
             self._publish_q.put_nowait(
                 json.dumps([
-                    'EVENT', evt.event_data()
+                    'EVENT', evt.data()
                 ])
             )
 
-    def auth(self, with_keys:Keys, challenge: str):
+    async def auth(self, signer: SignerInterface | Keys, challenge: str):
+        # better to use signer but if we just got keys we'll turn into a BasicKeySigner
+        if isinstance(signer, Keys):
+            signer = BasicKeySigner(signer)
+
         auth_event = Event(kind=Event.KIND_AUTH,
                            tags=[
                                ['relay', self.url],
                                ['challenge', challenge]
                            ],
-                           pub_key=with_keys.public_key_hex())
-        auth_event.sign(with_keys.private_key_hex())
+                           pub_key=await signer.get_public_key())
+
+        await signer.sign_event(auth_event)
 
         self._publish_q.put_nowait(
             json.dumps([
-                'AUTH', auth_event.event_data()
+                'AUTH', auth_event.data()
             ])
         )
 
-    async def query(self, filters: object = [],
-                    do_event: object = None,
-                    timeout=None, **kargs) -> [Event]:
+    async def query(self,
+                    filters: object = None,
+                    do_event: callable = None,
+                    timeout=None,
+                    wait_connect=False,
+                    **kargs) -> [Event]:
         """
         do simple one off queries to a given relay
         :param timeout:
         :rtype: object
         :param filters:
         :param do_event:
+        :param wait_connect:
         :return:
         """
         is_done = False
         ret = None
+        total_time = 0
+
+
+        # fix up filters
+        if filters is None:
+            filters = []
+        elif isinstance(filters, dict):
+            filters = [filters]
+
+        # use default timeout for client
         if timeout is None:
             timeout = self._query_timeout
 
@@ -390,7 +422,6 @@ class Client:
             ret = events
             if do_event is not None:
                 do_event(self, sub_id, events)
-                # Greenlet(util_funcs.get_background_task(do_event, the_client, sub_id, events)).start_later(0)
             is_done = True
 
         def cleanup():
@@ -398,25 +429,103 @@ class Client:
 
         # if not connected don't even bother trying to sub
         if not self.connected:
-            raise QueryLostConnectionException('Client::query - not connected to relay')
+            if wait_connect and 'fail_count' in self.status and self.status['fail_count'] > 0:
+                raise QueryLostConnectionException(f'Client::query - not connected to relay {self.url}')
+
+            # we'll give it 1s to connect...
+            await self.wait_connect(1)
+            total_time = 1
 
         sub_id = self.subscribe(filters=filters, eose_func=my_done)
 
         sleep_time = 0.1
-        total_time = 0
-        con_count = self._connected_count
-
         while is_done is False and self._run is True:
-            if con_count != self._connected_count:
-                raise QueryLostConnectionException('Client::query - lost connection during query')
+            if not self.connected:
+                raise QueryLostConnectionException(f'Client::query - lost connection during query {self.url}')
             if ret is None and timeout and total_time >= timeout:
                 cleanup()
-                raise QueryTimeoutException('Client::query timeout- %s' % self.url)
+                raise QueryTimeoutException(f'Client::query timeout- {self.url}')
 
             await asyncio.sleep(sleep_time)
             total_time += sleep_time
 
         cleanup()
+        return ret
+
+    async def query_until(self,
+                          until_date: datetime | int,
+                          filters: object = None,
+                          do_event: callable = None,
+                          timeout=None,
+                          wait_connect=False,
+                          **kargs) -> [Event]:
+        """
+            query as above except that it'll scan back until until_date
+            it's possible that it might also be useful to scan forward but to keep thing simple backward only
+            (if you supply a since in the query it'll be back from that point)
+        """
+
+        # fix filters
+        if filters is None:
+            filters = []
+        elif isinstance(filters, dict):
+            filters = [filters]
+
+        # because we're going to mod
+        filters = copy.deepcopy(filters)
+
+        # make sure until_date is int
+        if isinstance(until_date, datetime):
+            until_date = util_funcs.date_as_ticks(until_date)
+
+        ret = []
+        done = False
+        old_event = None
+
+        while done is False:
+            c_evts = await self.query(filters)
+
+            # run out of events
+            if not c_evts:
+                done = True
+            else:
+                # events should be ordered from relay but just incase....
+                c_evts.sort()
+
+                # cut any events upto and including anylast old event if we had one
+                if old_event:
+                    for back_seek in range(0, len(c_evts)):
+                        # the cut off event - last oldest should be the newest in this set
+                        if c_evts[back_seek].id == old_event.id:
+                            # cut any events before we reach the id of last event
+                            c_evts = c_evts[back_seek + 1:]
+                            break
+
+                # if no events then we're done
+                if not c_evts:
+                    done = True
+                else:
+                    # set an oldest event for next query
+                    old_event = c_evts[len(c_evts) - 1]
+                    oldest_date = old_event.created_at_ticks
+
+                    # if oldest date is lest then until date then we'll query again
+                    if oldest_date < until_date:
+                        # all dates are valid to ret
+                        ret = ret + c_evts
+                        # mod each filter in base query to have an until date
+                        for c_f in filters:
+                            c_f['until'] = oldest_date
+
+                    # oldest date us after until, append only event before until date
+                    else:
+                        done = True
+                        for c_evt in c_evts:
+                            if c_evt.created_at_ticks < until_date:
+                                ret.append(c_evt)
+                            else:
+                                break
+
         return ret
 
     def subscribe(self, sub_id=None, handlers=None, filters={}, eose_func=None):
@@ -439,7 +548,7 @@ class Client:
         the_req = the_req + filters
 
         the_req = json.dumps(the_req)
-        logging.debug('Client::subscribe - %s', the_req)
+        logging.debug(f'Client::subscribe - {the_req}')
 
         # make sure handler is list
         if handlers is None:
@@ -636,13 +745,15 @@ class ClientPool:
     """
 
     def __init__(self,
-                 clients: str | Client,
+                 clients: str | Client | list[str | Client],
                  on_connect: Callable = None,
                  on_status: Callable = None,
                  on_eose: Callable = None,
                  on_notice: Callable = None,
                  on_auth: Callable = None,
                  timeout: int = None,
+                 min_connect: int = 1,
+                 error_min_con_fail: bool=False,
                  **kargs
                  ):
 
@@ -674,7 +785,7 @@ class ClientPool:
         self._on_status = on_status
 
         # for whatever reason using pool but only a single client handed in
-        if isinstance(clients, str):
+        if isinstance(clients, (str, Client)):
             clients = [clients]
 
         # ssl if disabled - will be disabled for all clients
@@ -689,10 +800,15 @@ class ClientPool:
             except Exception as e:
                 logging.debug('ClientPool::__init__ - %s' % e)
 
-        # this is the timeout used when using the with context manager, if
-        # no client has connected after timeout then we'll error
-        # if None we'll just wait forever until a client connects
+        # connection timeout values for wait_connect - these are always used if using context
+        # can be overridden using wait_connect manually
+
+        # max wait to estabish connection
         self._timeout = timeout
+        # min n of clients we consider connected
+        self._min_connect = min_connect
+        # raise an error if we didn't reach min n cons or accept anynumber after timeout
+        self._error_min_con_fail = error_min_con_fail
 
     def add(self, client, auto_start=False) -> Client:
         """
@@ -937,12 +1053,15 @@ class ClientPool:
     def have_sub(self, sub_id: str):
         return sub_id in self._handlers
 
-    async def query(self, filters=[],
-                    do_event=None,
-                    wait_connect=False,
-                    emulate_single=True,
-                    timeout=None,
-                    on_complete=None):
+    async def _query(self,
+                     filters: [] = None,
+                     do_event: callable = None,
+                     wait_connect: bool = False,
+                     emulate_single: bool = True,
+                     timeout: int = None,
+                     on_complete: callable = None,
+                     until_date: int = None
+                     ):
         """
         similar to the query func, if you don't supply a ret_func we try and act in the same way as a single
         client would but wait for all clients to return and merge results into a single result with duplicate
@@ -966,19 +1085,33 @@ class ClientPool:
         async def get_q(the_client: Client):
             nonlocal client_wait
             try:
-                ret[the_client.url] = await the_client.query(filters,
-                                                             do_event=do_event,
-                                                             wait_connect=wait_connect,
-                                                             timeout=timeout)
+                # no until date, only one query will be done and what we get might not be everything
+                # as the relay most likely applies limits event if we don't request
+                if until_date is None:
+                    ret[the_client.url] = await the_client.query(filters,
+                                                                 do_event=do_event,
+                                                                 wait_connect=wait_connect,
+                                                                 timeout=timeout)
+
+                # with an until date, we'll try and get all event suntil until date
+                # this most likely will be made of multiple fetches
+                else:
+                    ret[the_client.url] = await the_client.query_until(until_date=until_date,
+                                                                       filters=filters,
+                                                                       do_event=do_event,
+                                                                       wait_connect=wait_connect,
+                                                                       timeout=timeout)
+
                 # ret_func(the_client, the_client.query(filters, wait_connect=False))
             except QueryTimeoutException as toe:
-                logging.debug('ClientPool::query timout - %s ' % toe)
+                logging.debug(f'ClientPool::query timout - {toe}')
             except Exception as e:
-                logging.debug('ClientPool::query exception - %s' % e)
+                logging.debug(f'ClientPool::query exception - {e}')
             client_wait -= 1
 
+            # callback that the fetch has completed
             if client_wait == 0 and on_complete:
-                on_complete()
+                on_complete(Event.merge(*ret.values()))
 
         c_client: Client
         query_tasks = []
@@ -995,8 +1128,45 @@ class ClientPool:
 
         return Event.merge(*ret.values())
 
+    def query(self,
+              filters: [] = None,
+              do_event: callable = None,
+              wait_connect: bool = False,
+              emulate_single: bool = True,
+              timeout: int = None,
+              on_complete: callable = None):
+
+        return self._query(filters=filters,
+                           do_event=do_event,
+                           wait_connect=wait_connect,
+                           emulate_single=emulate_single,
+                           timeout=timeout,
+                           on_complete=on_complete)
+
+    def query_until(self,
+                    until_date: datetime | int,
+                    filters: [] = None,
+                    do_event: callable = None,
+                    wait_connect: bool = False,
+                    emulate_single: bool = True,
+                    timeout: int = None,
+                    on_complete: callable = None):
+        """
+            query with backscan till until date, note if you set emulate_single False
+            then you'll probably want to supply an on_compete function
+        """
+
+        return self._query(until_date=until_date,
+                           filters=filters,
+                           do_event=do_event,
+                           wait_connect=wait_connect,
+                           emulate_single=emulate_single,
+                           timeout=timeout,
+                           on_complete=on_complete)
+
+
     def publish(self, evt: Event):
-        logging.debug('ClientPool::publish - %s', evt.event_data())
+        logging.debug(f'ClientPool::publish - {evt.data()}')
         c_client: Client
 
         for c_client in self:
@@ -1007,13 +1177,58 @@ class ClientPool:
                 except Exception as e:
                     logging.debug(e)
 
-    async def wait_connect(self, timeout=None):
+    async def wait_connect(self, timeout: int=None, min_connect: int=None, error_min_con_fail: bool=None):
+        """
+            wait for the ClientPool to be considered connected
+            the default is no timeout and we're happy as long as a single relay connects...
+            probably you'd atleast want to set a timeout
+
+            TODO: allow wait options to be set in init to be used as defaults in init
+        """
+        # how long we'll wait to get connection
+        if timeout is None:
+            timeout = self._timeout
+
+        # are we connected, we'll exit when this is True, we're connected if connect_count >= min_connect
+        # if we timeout and error_if_min is False and we have any connection we'll also count that as connected
+        connected = False
+
+        # if min_connect is 0 then we'll set it to all count of all clients
+        n_clients = len(self.clients)+1
+        if min_connect is None:
+            min_connect = self._min_connect
+        if min_connect == 0 or min_connect > n_clients:
+            min_connect = n_clients
+
+        if error_min_con_fail is None:
+            error_min_con_fail = self._error_min_con_fail
+
+        # number of connections we currently have
+        connect_count = 0
+
+        # how long we've been waiting
         wait_time = 0
-        while not self.connected:
+
+        while not connected:
+            # get n relays curretly connected
+            if 'connect_count' in self.status:
+                connect_count = self.status['connected_count']
+
+            if connect_count >= min_connect:
+                connected = True
+                continue
+
             await asyncio.sleep(0.1)
             wait_time += 0.1
+
+            # reached timeout...
             if timeout and int(wait_time) >= timeout:
-                raise ConnectionError('ClientPool::wait_connect timed out waiting for connection after %ss' % timeout)
+                # we have some connections and error_if_min is False so we're happy to go
+                if connect_count and error_min_con_fail is False:
+                    connected = True
+                # we wanted all connections so we'll raise an error
+                else:
+                    raise ConnectionError(f'ClientPool::wait_connect timed out waiting for connection after {timeout}s')
 
     def do_event(self, client: Client, sub_id: str, evt):
 
@@ -1027,7 +1242,11 @@ class ClientPool:
             if sub_id in self._handlers:
                 for c_handler in self._handlers[sub_id]:
                     try:
-                        c_handler.do_event(client, sub_id, evt)
+                        if callable(c_handler):
+                            c_handler(client, sub_id, evt)
+                        # should be a class with do_event defined (e.g. extends client.event_handlers.EventHandler)
+                        else:
+                            c_handler.do_event(client, sub_id, evt)
                     except Exception as e:
                         logging.debug('ClientPool::do_event, problem in handler - %s' % e)
 
@@ -1062,7 +1281,7 @@ class ClientPool:
         for url in self._clients:
             yield self._clients[url]['client']
 
-    async def __aenter__(self):
+    async def __aenter__(self, test=None):
         asyncio.create_task(self.run())
         await self.wait_connect(self._timeout)
         return self

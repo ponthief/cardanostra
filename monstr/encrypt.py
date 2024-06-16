@@ -1,16 +1,28 @@
 """
     code to support encrpted notes using ECDH as NIP4
 """
-
-# FIXME: chenage to use cipher from cryptography so we dont need both Crypto and cryptography
 import os
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
+import json
+from abc import ABC, abstractmethod
+from hashlib import sha256
+import hmac
+from math import floor, log2
+import base64
+from Crypto.Cipher import ChaCha20, AES
+from Crypto.Util.Padding import pad, unpad
+# from Crypto.PublicKey import ECC
+# unfortunately we need this both crypto libs to as PyCryptodome doesn't seem to support sep256k1
+# and cryptograpy.io doesn't have Chacha without the mac that we need for NIP44 as far as I could understand it
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
 import secp256k1
 import bech32
 from enum import Enum
+
+import typing
+
+# required for encrypt_event, decrypt event... maybe these methods don't really belong here
+# or else keys should be in onw file/folder for encrypt?
+from ..event.event import Event
 
 
 # TODO: sort something out about the different key formats....
@@ -54,7 +66,7 @@ class Keys:
     @staticmethod
     def is_hex_key(key:str):
         """
-            returns true if looks like valid hex string for monstr key its not possible to tell if priv/pub
+            returns true if looks like valid hex string for nonstr key its not possible to tell if priv/pub
         """
         ret = False
         if len(key) == 64:
@@ -115,6 +127,11 @@ class Keys:
         where npub/hex is supplied the Keys objects will return None for private_key methods
         if the key str doesn't look valid None is returned
         """
+
+        # if already a key object just return as is
+        if isinstance(key, Keys):
+            return key
+
         ret = None
         key = key.lower()
         if Keys.is_valid_key(key):
@@ -137,7 +154,7 @@ class Keys:
         """
 
         # internal hex format
-        self._priv_k= None
+        self._priv_k = None
         self._pub_k = None
 
         # nothing supplied generate new keys
@@ -151,7 +168,7 @@ class Keys:
                     raise Exception('attempt to use npub as private key!!')
                 priv_k = Keys.hex_key(priv_k)
             k_pair = self.get_new_key_pair(priv_k)
-            if pub_k and k_pair[pub_k] != pub_k:
+            if pub_k and k_pair['pub_k'] != pub_k:
                 raise Exception('attempt to create key with mismatched keypair, maybe just don\'t supply the pub_k?')
             self._pub_k = k_pair['pub_k']
             self._priv_k = k_pair['priv_k']
@@ -159,7 +176,7 @@ class Keys:
         else:
             self._pub_k = Keys.hex_key(pub_k)
             if not self._pub_k:
-                raise Exception('pub_k does\'t look like a valid monstr key - %s' % pub_k)
+                raise Exception('pub_k does\'t look like a valid nonstr key - %s' % pub_k)
 
     def private_key_hex(self):
         return self._priv_k
@@ -195,88 +212,385 @@ class Keys:
                              self.public_key_bech32()))
         return '\n'.join(ret)
 
-class SharedEncrypt:
 
-    def __init__(self, priv_k_hex):
-        """
-        :param priv_k_hex:              our private key
-        TODO: take a look at priv_k and try to create and work out from it
+class DecryptionException(Exception):
+    pass
 
-        """
 
-        # us, hex, int and key
-        self._priv_hex = priv_k_hex
-        self._priv_int = int(priv_k_hex, 16)
-        self._key = ec.derive_private_key(self._priv_int, ec.SECP256K1())
-        # our public key for priv key
-        self._pub_key = self._key.public_key()
-        # shared key for priv/pub ECDH
-        self._shared_key = None
+class Encrypter(ABC):
 
-    @property
-    def public_key_hex(self):
-        return self.public_key_bytes.hex()
+    def encrypt(self, plain_text: str, to_pub_k: str) -> str:
+        raise NotImplementedError
 
-    @property
-    def public_key_bytes(self):
-        return self._pub_key.public_bytes(encoding=serialization.Encoding.X962,
-                                          format=serialization.PublicFormat.CompressedPoint)
+    def decrypt(self, payload: str, for_pub_k: str) -> str:
+        raise NotImplementedError
 
-    def derive_shared_key(self, pub_key_hex, as_type=KeyEnc.HEX):
-        pk = secp256k1.PublicKey()
-        if len(pub_key_hex) == 64:
-            pub_key_hex = '02' + pub_key_hex
+    def public_key_hex(self) -> str:
+        raise NotImplementedError
 
-        pk.deserialize(bytes.fromhex(pub_key_hex))
-        pub_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), pk.serialize(False))
-        self._shared_key = self._key.exchange(ec.ECDH(), pub_key)
+    async def aencrypt(self, plain_text: str, to_pub_k: str) -> str:
+        raise NotImplementedError
 
-        # added return so we don't have to do as 2 step all the time
-        return self.shared_key(as_type)
+    async def adecrypt(self, payload: str, for_pub_k: str) -> str:
+        raise NotImplementedError
 
-    def shared_key(self, as_type=KeyEnc.HEX):
-        if self._shared_key is None:
-            raise Exception('SharedEncrypt::shared_key hasn\'t been derived yet')
+    async def apublic_key_hex(self) -> str:
+        raise NotImplementedError
 
-        ret = self._shared_key
-        if as_type == KeyEnc.HEX:
-            ret = self._shared_key.hex()
+    """
+        util methods for basic nostr messaging if encrypt and decrypt functions have been declared
+        (for basic 2 way event mesasge i.e use the p_tags)
+        both return new event:
+            encrypt_event, content encrypted and p_tags set (append your own p_tags after)
+            decrypt_event, content decrypted based on the p_tags
+    """
 
+    def _get_to_pub_key_hex(self, to_pub_k: str) -> str:
+        ret = to_pub_k
+        if isinstance(ret, Keys):
+            ret = to_pub_k.public_key_hex()
+        elif not Keys.is_valid_key(ret):
+            raise ValueError(f'{self.__class__.__name__}::encrypt_event invalid to_pub_k - {ret}')
         return ret
 
-    def encrypt_message(self, data, pub_key_hex=None):
-        if pub_key_hex is not None:
-            self.derive_shared_key(pub_key_hex)
+    def _make_encrypt_event(self, src_event: Event, to_k: str) -> Event:
+        to_k_hex = self._get_to_pub_key_hex(to_k)
 
-        key = secp256k1.PrivateKey().deserialize(self.shared_key(as_type=KeyEnc.HEX))
-        # iv = get_random_bytes(16)
+        # copy the event
+        ret = Event.load(src_event.data())
+        ret.tags = [['p', to_k_hex]]
+        return ret
+
+    def encrypt_event(self, evt: Event, to_pub_k: str | Keys) -> Event:
+        ret = self._make_encrypt_event(evt, to_pub_k)
+        # the pub_k author must be us
+        ret.pub_key = self.public_key_hex()
+        # change content to cipher_text
+        ret.content = self.encrypt(plain_text=ret.content,
+                                   to_pub_k=ret.tags.get_tag_value_pos('p'))
+        return ret
+
+    async def aencrypt_event(self, evt: Event, to_pub_k: str | Keys) -> Event:
+        ret = self._make_encrypt_event(evt, to_pub_k)
+        # the pub_k author must be us
+        ret.pub_key = await self.apublic_key_hex()
+        # change content to cipher_text
+        ret.content = await self.aencrypt(plain_text=ret.content,
+                                          to_pub_k=ret.tags.get_tag_value_pos('p'))
+        return ret
+
+    def decrypt_event(self, evt: Event) -> Event:
+        pub_k = evt.pub_key
+        if pub_k == self.public_key_hex():
+            pub_k = evt.p_tags[0]
+
+        ret = Event.load(evt.data())
+        ret.content = self.decrypt(payload=evt.content,
+                                   for_pub_k=pub_k)
+        return ret
+
+    async def adecrypt_event(self, evt: Event) -> Event:
+        pub_k = evt.pub_key
+        if pub_k == await self.apublic_key_hex():
+            pub_k = evt.p_tags[0]
+
+        # always a copy
+        ret = Event.load(evt.data())
+
+        ret.content = await self.adecrypt(payload=evt.content,
+                                          for_pub_k=pub_k)
+        return ret
+
+
+class KeyEncrypter(Encrypter):
+
+    def __init__(self, key: Keys | str):
+        if isinstance(key, str):
+            key = Keys(priv_k=key)
+        if key.private_key_hex() is None:
+            raise ValueError(f'{self.__class__.__name__}::__init__ a key that can sign is required')
+
+        self._key = key
+        self._priv_k = secp256k1.PrivateKey(bytes.fromhex(self._key.private_key_hex()))
+
+    def public_key_hex(self) -> str:
+        return self._key.public_key_hex()
+
+
+class NIP4Encrypt(KeyEncrypter):
+
+    def __init__(self, key: Keys | str):
+        super().__init__(key)
+
+        self._ec_key = ec.derive_private_key(int.from_bytes(self._priv_k.private_key,
+                                                            byteorder='big'), ec.SECP256K1())
+
+        # shared key for priv/pub ECDH
+        self._shared_keys = {}
+
+    def _get_derived_shared_key(self, for_pub_k: str):
+        # first time we need to derive the shared key for us and the pub_k
+        if for_pub_k not in self._shared_keys:
+            pk = secp256k1.PublicKey()
+            pk.deserialize(bytes.fromhex('02'+for_pub_k))
+            ec_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256K1(), pk.serialize(False))
+            shared_key = self._ec_key.exchange(ec.ECDH(), ec_key)
+
+            self._shared_keys[for_pub_k] = {
+                KeyEnc.BYTES: shared_key,
+                KeyEnc.HEX: shared_key.hex()
+            }
+
+    def get_echd_key_hex(self, for_pub_k: str) -> str:
+        self._get_derived_shared_key(for_pub_k=for_pub_k)
+        return self._shared_keys[for_pub_k][KeyEnc.HEX]
+
+    def _do_encrypt(self, plain_text: str, to_pub_k: str):
+        data = bytes(plain_text.encode('utf8'))
+        share_key = self.get_echd_key_hex(to_pub_k)
+        key = secp256k1.PrivateKey().deserialize(share_key)
+
         iv = os.urandom(16)
-        # data = Padding.pad(data, 16)
-        padder = padding.PKCS7(128).padder()
-        data = padder.update(data)
-        data += padder.finalize()
-
-        # cipher = AES.new(key, AES.MODE_CBC, iv)
-        ciper = Cipher(algorithms.AES(key), modes.CBC(iv))
-        encryptor = ciper.encryptor()
+        data = pad(data, block_size=16, style='pkcs7')
+        ciper = AES.new(key=key, mode=AES.MODE_CBC, iv=iv)
+        ciper_text = ciper.encrypt(data)
 
         return {
-            'text': encryptor.update(data) + encryptor.finalize(),
+            'text': ciper_text,
             'iv': iv,
-            'shared_key': self._shared_key
+            'shared_key': share_key
         }
 
-    def decrypt_message(self, encrypted_data,iv, pub_key_hex=None):
-        if pub_key_hex is not None:
-            self.derive_shared_key(pub_key_hex)
+    def encrypt(self, plain_text: str, to_pub_k: str) -> str:
+        crypt_message = self._do_encrypt(plain_text=plain_text,
+                                         to_pub_k=to_pub_k)
+        enc_message = base64.b64encode(crypt_message['text'])
+        iv_env = base64.b64encode(crypt_message['iv'])
+        return f'{enc_message.decode()}?iv={iv_env.decode()}'
 
-        key = secp256k1.PrivateKey().deserialize(self.shared_key(as_type=KeyEnc.HEX))
-        ciper = Cipher(algorithms.AES(key), modes.CBC(iv))
-        decryptor = ciper.decryptor()
+    def _do_decrypt(self, encrypted_data, iv, for_pub_k: str):
+        share_key = self.get_echd_key_hex(for_pub_k=for_pub_k)
 
-        ret = decryptor.update(encrypted_data)
-        padder = padding.PKCS7(128).unpadder()
-        ret = padder.update(ret)
-        ret += padder.finalize()
+        key = secp256k1.PrivateKey().deserialize(share_key)
+        ciper = AES.new(key=key,
+                        mode=AES.MODE_CBC,
+                        iv=iv)
+        padded = ciper.decrypt(encrypted_data)
+        return unpad(padded, block_size=16, style='pkcs7')
+
+    def decrypt(self, payload: str, for_pub_k: str) -> str:
+        msg_split = payload.split('?iv')
+        text = base64.b64decode(msg_split[0])
+        iv = base64.b64decode(msg_split[1])
+        return self._do_decrypt(encrypted_data=text,
+                                iv=iv,
+                                for_pub_k=for_pub_k).decode('utf8')
+
+
+class NIP44Encrypt(KeyEncrypter):
+    """
+        base functionality for implementing NIP44
+        https://github.com/paulmillr/nip44
+    """
+
+    NIP44_PAD_MIN = 1
+    NIP44_PAD_MAX = 65535
+
+    # we only support v2 which is sha256 hash and this hash
+    # and mostly funcs are hard coded currently to use these
+    V2_HASH = sha256
+    V2_SALT = b'nip44-v2'
+
+    def __init__(self, key: Keys | str):
+        super().__init__(key)
+
+    # hkdf functions taken and modified from https://en.wikipedia.org/wiki/HKDF 14/4/2024
+    @staticmethod
+    def _hmac_digest(key: bytes, data: bytes, hash_func) -> bytes:
+        return hmac.new(key, data, hash_func).digest()
+
+    @staticmethod
+    def _hkdf_extract(salt: bytes, ikm: bytes, hash_function) -> bytes:
+        if len(salt) == 0:
+            salt = bytes([0] * hash_function.digest_size)
+        return NIP44Encrypt._hmac_digest(salt, ikm, hash_function)
+
+    @staticmethod
+    def _hkdf_expand(prk: bytes, info: bytes, length: int, hashfunction) -> bytes:
+        t = b""
+        okm = b""
+        i = 0
+        while len(okm) < length:
+            i += 1
+            t = NIP44Encrypt._hmac_digest(prk, t + info + bytes([i]), hashfunction)
+            okm += t
+        return okm[:length]
+
+    @staticmethod
+    def _hmac_aad(key, message, aad, hash_function) -> bytes:
+        if len(aad) != 32:
+            raise Exception('AAD associated data must be 32 bytes');
+
+        return NIP44Encrypt._hmac_digest(key=key,
+                                         data=aad+message,
+                                         hash_func=hash_function)
+
+    @staticmethod
+    def _calc_padded_len(unpadded_len):
+        next_power = 32
+        if unpadded_len > 1:
+            next_power = 1 << (floor(log2(unpadded_len - 1))) + 1
+
+        if next_power <= 256:
+            chunk = 32
+        else:
+            chunk = int(next_power / 8)
+        if unpadded_len <= 32:
+            return 32
+        else:
+            return chunk * (floor((unpadded_len - 1) / chunk) + 1)
+
+    @staticmethod
+    def _pad(plaintext: str) -> bytes:
+        plaintext = plaintext.encode('utf-8')
+        unpadded_len = len(plaintext)
+
+        if unpadded_len < NIP44Encrypt.NIP44_PAD_MIN or unpadded_len > NIP44Encrypt.NIP44_PAD_MAX:
+            raise Exception('invalid plaintext length')
+
+        padded_length = NIP44Encrypt._calc_padded_len(unpadded_len)
+
+        prefix = unpadded_len.to_bytes(length=2, byteorder='big', signed=False)
+        sufix = bytes(padded_length - unpadded_len)
+
+        return prefix + plaintext + sufix
+
+    @staticmethod
+    def _unpad(padded: bytes) -> bytes:
+        msg_len = int.from_bytes(padded[:2], byteorder='big')
+        ret = padded[2:msg_len + 2]
+
+        if msg_len == 0 \
+                or len(ret) != msg_len \
+                or NIP44Encrypt._calc_padded_len(len(ret)) + 2 != len(padded):
+            raise Exception('nip44 invalid padding')
 
         return ret
+
+    @staticmethod
+    def _decode_payload(payload) -> tuple[bytes, bytes, bytes]:
+        p_size = len(payload)
+
+        # TODO: size limits should be being calculated from MIN/MAX PAD
+        if p_size < 132 or p_size > 87472:
+            raise DecryptionException(f'invalid payload size {p_size}')
+
+        data = base64.b64decode(payload)
+        d_size = len(data)
+
+        if d_size < 99 or d_size > 65603:
+            raise DecryptionException(f'invalid payload size {p_size}')
+
+        version = data[0]
+        nonce = data[1:33]
+        cipher_text = data[33:d_size-32]
+        mac = data[d_size-32:]
+
+        # only current/supported version
+        if version != 2:
+            raise DecryptionException(f'nip44_encrypt unsupported version {version}')
+
+        return nonce, cipher_text, mac
+
+    def _get_conversation_key(self, for_pub_k: str) -> bytes:
+        the_pub: secp256k1.PublicKey = secp256k1.PublicKey(pubkey=bytes.fromhex('02' + for_pub_k), raw=True)
+
+        # Execute ECDH mult for shared key
+        tweaked_key: secp256k1.PublicKey = the_pub.tweak_mul(self._priv_k.private_key)
+
+        return NIP44Encrypt._hkdf_extract(salt=NIP44Encrypt.V2_SALT,
+                                          ikm=tweaked_key.serialize()[1:],
+                                          hash_function=NIP44Encrypt.V2_HASH)
+
+    @staticmethod
+    def _get_message_key(conversion_key: bytes, nonce: bytes) -> tuple[bytes, bytes, bytes]:
+
+        if len(nonce) != 32:
+            raise DecryptionException('NIP44Encrypt:: _get_message_key nonce is not 32 bytes long')
+
+        msg_key = NIP44Encrypt._hkdf_expand(prk=conversion_key,
+                                            info=nonce,
+                                            length=76,
+                                            hashfunction=NIP44Encrypt.V2_HASH)
+
+        chacha_key = msg_key[0:32]
+        chacha_nonce = msg_key[32:44]
+        hmac_key = msg_key[44:76]
+
+        return chacha_key, chacha_nonce, hmac_key
+
+    @staticmethod
+    def _do_encrypt(padded_data: bytes, key: bytes, nonce: bytes) -> bytes:
+        cha = ChaCha20.new(key=key,
+                           nonce=nonce)
+        return cha.encrypt(padded_data)
+
+    @staticmethod
+    def _make_payload(cipher_text: bytes, hmac_key: bytes, nonce: bytes, version: int) -> str:
+        if version != 2:
+            raise ValueError(f'NIP44Encrypt: _make_payload unsupported version {version}')
+
+        mac = NIP44Encrypt._hmac_aad(key=hmac_key,
+                                     message=cipher_text,
+                                     aad=nonce,
+                                     hash_function=NIP44Encrypt.V2_HASH)
+
+        payload = version.to_bytes(1, byteorder='big') + nonce + cipher_text + mac
+        return base64.b64encode(payload).decode('utf-8')
+
+    def encrypt(self, plain_text: str, to_pub_k: str, version: int = 2) -> str:
+        con_key = self._get_conversation_key(for_pub_k=to_pub_k)
+        nonce = os.urandom(32)
+
+        chacha_key, chacha_nonce, hmac_key = self._get_message_key(conversion_key=con_key,
+                                                                   nonce=nonce)
+
+        padded = self._pad(plain_text)
+
+        cipher_text = NIP44Encrypt._do_encrypt(padded_data=padded,
+                                               key=chacha_key,
+                                               nonce=chacha_nonce)
+        return self._make_payload(cipher_text=cipher_text,
+                                  hmac_key=hmac_key,
+                                  nonce=nonce,
+                                  version=version)
+
+    @staticmethod
+    def _do_decrypt(ciper_text: bytes, key: bytes, nonce: bytes) -> bytes:
+        cha = ChaCha20.new(key=key,
+                           nonce=nonce)
+        return cha.decrypt(ciper_text)
+
+    def decrypt(self, payload: str, for_pub_k: str) -> str:
+        nonce, ciper_text, mac = self._decode_payload(payload)
+
+        con_key = self._get_conversation_key(for_pub_k)
+
+        chacha_key, chacha_nonce, hmac_key = self._get_message_key(conversion_key=con_key,
+                                                                   nonce=nonce)
+
+        calculated_mac = NIP44Encrypt._hmac_aad(key=hmac_key,
+                                                message=ciper_text,
+                                                aad=nonce,
+                                                hash_function=NIP44Encrypt.V2_HASH)
+
+        if calculated_mac != mac:
+            raise DecryptionException('invalid MAC')
+
+        padded = NIP44Encrypt._do_decrypt(ciper_text=ciper_text,
+                                          key=chacha_key,
+                                          nonce=chacha_nonce)
+
+        plain_text = NIP44Encrypt._unpad(padded=padded)
+
+        return plain_text.decode('utf-8')

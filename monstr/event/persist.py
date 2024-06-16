@@ -795,3 +795,4 @@ class ASQLEventStore(AEventStoreInterface, StoreNIPSupport):
 #     def destroy(self):
 #         os.remove(self._db.file)
 
+
