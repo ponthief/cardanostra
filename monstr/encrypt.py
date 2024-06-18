@@ -22,7 +22,7 @@ import typing
 
 # required for encrypt_event, decrypt event... maybe these methods don't really belong here
 # or else keys should be in onw file/folder for encrypt?
-from ..event.event import Event
+from .event.event import Event
 
 
 # TODO: sort something out about the different key formats....

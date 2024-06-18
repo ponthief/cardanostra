@@ -10,7 +10,7 @@ import inspect
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..ident.event_handlers import ProfileEventHandlerInterface
-    from ..client.client import Client
+    from .client.client import Client
 import asyncio
 from datetime import datetime
 from ..ident.profile import ProfileList, Profile, Contact, ContactList

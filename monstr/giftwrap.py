@@ -1,10 +1,10 @@
 import json
 import random
 from datetime import datetime
-from ..signing.signing import SignerInterface, BasicKeySigner
-from ..encrypt import Keys
-from ..event.event import Event
-from ..util import util_funcs
+from .signing.signing import SignerInterface, BasicKeySigner
+from .encrypt import Keys
+from .event.event import Event
+from .util import util_funcs
 
 
 class GiftWrapException(Exception):

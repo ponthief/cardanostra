@@ -36,3 +36,10 @@ def cardanostra_start():
     # restart Nostr relay connection once every 8 hours as it's getting disconnected         
     task2 = loop.create_task(every(8 * 3600, restart_bot))              
     scheduled_tasks.extend([task1, task2])
+
+def cardanostra_stop():
+    for task in scheduled_tasks:
+        try:
+            task.cancel()
+        except Exception as ex:
+            logger.warning(ex)    

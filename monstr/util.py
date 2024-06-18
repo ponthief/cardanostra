@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from ..event.event import Event
+    from .event.event import Event
 
 import time
 import sys
@@ -11,7 +11,7 @@ from hashlib import md5
 import logging
 import os
 from pathlib import Path
-from ..db.db import SQLiteDatabase
+from .db.db import SQLiteDatabase
 
 """
     just a place to hand any util funcs that don't easily fit anywhere else

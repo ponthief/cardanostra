@@ -5,8 +5,8 @@ from .cardanostra import CardaNostra
 import httpx
 from lnbits.extensions.cardanostra.monstr.util import util_funcs
 from lnbits.extensions.cardanostra.monstr.client.client import Client, ClientPool
-from lnbits.extensions.cardanostra.monstr.event_handlers import LastEventHandler
-from lnbits.extensions.cardanostra.monstr.event import Event
+from lnbits.extensions.cardanostra.monstr.client.event_handlers import LastEventHandler
+from lnbits.extensions.cardanostra.monstr.event.event import Event
 from lnbits.extensions.cardanostra.monstr.encrypt import Keys
 from .crud import (          
     get_relays,
