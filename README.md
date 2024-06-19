@@ -7,7 +7,7 @@ It requires that the [BoltCards Extension](https://github.com/lnbits/boltcards) 
 Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
 - Add a Nostr Account which will act as a Bot handling requests from the users with BoltCards
 - Link BoltCard to user's Nostr account so that the card/account are authorised to communicate with the Bot
-- Add Nostr Relays so that NIP-04 messages between Bot and BoltCard user's Nostr account can be sent
+- Add Nostr Relays so that NIP59 messages between Bot and BoltCard user's Nostr account can be sent
 
 
 ## Add Main Nostr Account
@@ -30,8 +30,8 @@ Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
     - Enter Card Name - this is the name that the user would like his card to be known as i.e. MyLnBitsBoltCard
     - Enter NPub - this is Public Key for the Nostr Account that also "owns" the card and wishes to control it via Bot
     
-Once all 3 items are added into LNbits users with cards who are following LNbits Nostr account will be able to manage their cards by sending direct encrypted messages:
+Once all 3 items are added into LNbits, users with cards who are following LNbits Nostr account will be able to manage their cards by sending [NIP59](https://github.com/nostr-protocol/nips/blob/master/59.md) GiftWrap messages.
+For sending/receiving GiftWrap messages between client and Bot, clients will have to *enable Incognito mode* in their Nostr apps - see image below 
 <p float="left">
 <img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_menu.jpg" width="300" height="575">
-<img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_commands.jpg" width="300" height="575">
 </p>
