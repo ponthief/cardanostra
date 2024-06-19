@@ -61,32 +61,6 @@ class CardaNostra(EventHandler):
 
         #logger.debug('BotEventHandler::do_event - received event %s' % evt)
         self._queue.put_nowait(evt)
-        #prompt_text, response_text = await self.handle_bot_command(evt)
-        # logger.debug('BotEventHandler::do_event - prompt = %s' % prompt_text)
-        # logger.debug('BotEventHandler::do_event - response = %s' % response_text)
-
-        # create and send
-        # response_event = Event(
-        #     kind=evt.kind,
-        #     content=response_text,
-        #     tags=self._make_reply_tags(evt),
-        #     pub_key=self._as_user.public_key_hex()
-        # )
-
-        # if response_event.kind == Event.KIND_GIFT_WRAP:
-        #     response_event.content = response_event.encrypt_content(priv_key=self._as_user.private_key_hex(),
-        #                                                             pub_key=evt.pub_key)
-
-        # response_event.sign(self._as_user.private_key_hex())
-        # self._clients.publish(response_event)
-        # if self._store:
-        #     # store the txt decrypted?
-        #     if evt.kind == Event.KIND_GIFT_WRAP:
-        #         evt.content = prompt_text
-        #         response_event.content = response_text
-
-        #     asyncio.create_task(self._store.put(prompt_evt=evt,
-        #                                         reply_evt=response_event))
 
     # This async function will raise an exception
     async def async_restart(self):
@@ -100,10 +74,10 @@ class CardaNostra(EventHandler):
             /freeze <card_name> - disables card     
             /enable <card_name> - (re)enables card      
             /get <card_name> - shows card settings      
-            /tx_max <card_name> <sats> - sets new tx maximum        
-            /day_max <card_name> <sats> - sets new daily max        
-            /list - displays all the cards registered to pub key        
-            /register <uid> <card_name> - register new card     
+            /tx_max <card_name> sats - sets new tx maximum        
+            /day_max <card_name> sats - sets new daily max        
+            /list - displays all the registered cards for pub key        
+            /register uid <card_name> - register new card with uid     
             /bal <card_name> - display card balance     
             /spent <card_name> - total spent today      
 """
@@ -172,18 +146,7 @@ class CardaNostra(EventHandler):
             return f"Spent today on {card_name}: {card_spent} sats"
         return f'{card_name} not found. Register first via /register command.'
     
-    async def handle_bot_command(self, comm_text, pk):        
-        #prompt_text = the_event.content
-        # if the_event.kind == Event.KIND_GIFT_WRAP:
-        #     logger.debug('BotEventHandler::bot - received event %s' % the_event)
-            # prompt_text = the_event.decrypted_content(priv_key=self._as_user.private_key_hex(),
-            #                                           pub_key=the_event.pub_key)
-            
-        # do whatever to get the response
-        #pk = the_event.pub_key
-        # reply_n = self._replied[pk] = self._replied.get(pk, 0)+1
-        # reply_name = util_funcs.str_tails(pk) 
-        # logger.debug(reply_name)       
+    async def handle_bot_command(self, comm_text, pk):             
         match comm_text.split():
             case ["/freeze", card_name]:                
                 response_text = await self.change_card_settings(card_name, pk, enable=False)
@@ -210,7 +173,10 @@ class CardaNostra(EventHandler):
                 response_text = await self.get_bal_for_card(card_name, pk)
 
             case ["/spent", card_name]:
-                response_text = await self.get_day_spent_for_card(card_name, pk)           
+                response_text = await self.get_day_spent_for_card(card_name, pk)
+
+            case ["/help"]:         
+                response_text = self.menu()
 
             case _: response_text = self.menu()        
 

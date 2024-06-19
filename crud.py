@@ -218,8 +218,8 @@ async def get_boltcard_spent_day(uid: str) -> Optional[int]:
     row = await db.fetchone("SELECT wallet FROM boltcards.cards WHERE uid = ?", (uid.upper()))
     if row:
         row = await db.fetchone("SELECT sum(amount) FROM public.apipayments WHERE wallet = ? AND "
-                                "time >= date_trunc('day', NOW()) - INTERVAL '1 day' "
-                                "AND time <  date_trunc('day', NOW())", (row[0]))        
+                                "time BETWEEN date_trunc('day', NOW()) - INTERVAL '1 day' "
+                                "AND LOCALTIMESTAMP", (row[0]))        
         if row[0]:
             return abs(int(row[0]/1000))        
     return 0
