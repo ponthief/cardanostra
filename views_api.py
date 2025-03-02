@@ -3,11 +3,10 @@
 # add your dependencies here
 
 from http import HTTPStatus
-from fastapi import Depends
+from fastapi import APIRouter, Depends
 from starlette.exceptions import HTTPException
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import urlsafe_short_hash
-from . import cardanostra_ext
 from loguru import logger
 
 from .crud import (   
@@ -65,11 +64,13 @@ def validate_account(data: NostrAccount):
 
 # Account Control
 
-@cardanostra_ext.get("/api/v1/accounts", status_code=HTTPStatus.OK)
+cardanostra_api_router = APIRouter()
+
+@cardanostra_api_router.get("/api/v1/accounts", status_code=HTTPStatus.OK)
 async def api_accounts(wallet: WalletTypeInfo = Depends(require_admin_key)):   
     return [account.dict() for account in await get_nostr_accounts()] 
 
-@cardanostra_ext.delete("/api/v1/accounts/{id}")
+@cardanostra_api_router.delete("/api/v1/accounts/{id}")
 async def delete_account(id: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkId = await get_account_by_id(id)
     if checkId is None:
@@ -79,7 +80,7 @@ async def delete_account(id: str, wallet: WalletTypeInfo = Depends(require_admin
     await delete_nostr_account(id)
     return "", HTTPStatus.NO_CONTENT 
 
-@cardanostra_ext.post(
+@cardanostra_api_router.post(
     "/api/v1/account",
     description="Add new Nostr account",
     status_code=HTTPStatus.CREATED,
@@ -105,12 +106,12 @@ async def api_add_nostr_account(wallet: WalletTypeInfo = Depends(require_admin_k
 
 # Relay Control
 
-@cardanostra_ext.get("/api/v1/relays", status_code=HTTPStatus.OK)
+@cardanostra_api_router.get("/api/v1/relays", status_code=HTTPStatus.OK)
 async def api_relays(wallet: WalletTypeInfo = Depends(require_admin_key)):       
     return [relay.dict() for relay in await get_relays()] 
 
 
-@cardanostra_ext.post(
+@cardanostra_api_router.post(
     "/api/v1/relay",
     description="Add new Relay",    
     status_code=HTTPStatus.CREATED)
@@ -133,7 +134,7 @@ async def api_add_relay( wallet: WalletTypeInfo = Depends(require_admin_key),
     assert relay, "add relay should always return a relay"     
     return relay
 
-@cardanostra_ext.delete("/api/v1/relays/{id}")
+@cardanostra_api_router.delete("/api/v1/relays/{id}")
 async def delete_relay(id: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkId = await get_relay_by_id(id)
     if checkId is None:
@@ -145,7 +146,7 @@ async def delete_relay(id: str, wallet: WalletTypeInfo = Depends(require_admin_k
 
 # Card Control
 
-@cardanostra_ext.post("/api/v1/register", 
+@cardanostra_api_router.post("/api/v1/register", 
                            status_code=HTTPStatus.CREATED,
                            dependencies=[Depends(validate_card)])
 async def set_card(wallet: WalletTypeInfo = Depends(require_admin_key), data: NostrCardData = None): 
@@ -165,7 +166,7 @@ async def set_card(wallet: WalletTypeInfo = Depends(require_admin_key), data: No
     assert card, "create_card should always return a card"
     return card      
 
-@cardanostra_ext.delete("/api/v1/cards/{card_uid}")
+@cardanostra_api_router.delete("/api/v1/cards/{card_uid}")
 async def delete_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_admin_key)): 
     checkUid = await get_nostrbotcard_by_uid(card_uid)
     if not checkUid:
@@ -175,13 +176,13 @@ async def delete_card(card_uid: str, wallet: WalletTypeInfo = Depends(require_ad
     await delete_nostrbot_card(card_uid)
     return "", HTTPStatus.NO_CONTENT 
 
-@cardanostra_ext.get("/api/v1/cards", status_code=HTTPStatus.OK)
+@cardanostra_api_router.get("/api/v1/cards", status_code=HTTPStatus.OK)
 async def api_cards(wallet: WalletTypeInfo = Depends(require_admin_key)):    
     return [card.dict() for card in await get_cards()]  
     
 # Bot 
 
-@cardanostra_ext.put("/api/v1/restart")
+@cardanostra_api_router.put("/api/v1/restart")
 async def api_restart_bot(wallet: WalletTypeInfo = Depends(require_admin_key)):    
     await restart_bot()
-    return {"success": True}  
+    return {"success": True}

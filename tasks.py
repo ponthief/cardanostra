@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+from typing import Optional, List
 from loguru import logger
 from .cardanostra import CardaNostra
 import httpx
@@ -12,12 +12,10 @@ from .crud import (
     get_relays,
     get_nostr_accounts
 )
-from . import scheduled_tasks
-from lnbits.tasks import catch_everything_and_restart
-
 http_client: Optional[httpx.AsyncClient] = None
 global NClients
 NClients = None
+scheduled_tasks: List[asyncio.Task] = []
 
 async def setup_bot():    
     accounts = [account.nsec for account in await get_nostr_accounts()] 
@@ -69,19 +67,17 @@ async def start_bot():
                     % (as_user.public_key_hex(), relays))
         await clients.run()         
 
+async def restart_bot():
+    from lnbits.tasks import create_permanent_unique_task    
+    global NClients
+    if NClients:
+        NClients.end()
+    NClients = None
+    logger.info("Restarting CardaNostra")       
+    task1 = create_permanent_unique_task("cardanostra_restart", start_bot)                
+    scheduled_tasks.append(task1)
 
 async def every(__seconds: float, func, *args, **kwargs):
     while True:                
         await asyncio.sleep(__seconds)        
         await func(*args, **kwargs)
-
-
-async def restart_bot():
-    global NClients
-    if NClients:
-        NClients.end()
-    NClients = None
-    logger.info("Restarting CardaNostra")
-    loop = asyncio.get_event_loop()
-    task1 = loop.create_task(catch_everything_and_restart(start_bot))                
-    scheduled_tasks.append(task1)

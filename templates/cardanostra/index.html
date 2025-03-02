@@ -316,17 +316,12 @@
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script>
-  Vue.component(VueQrcode.name, VueQrcode)
-  var mapCard = function (obj) {
-    obj.time = Quasar.utils.date.formatDate(
-      new Date(obj.time * 1000),
-      'YYYY-MM-DD HH:mm'
-    )    
+  const mapCard = obj => {
+  obj.date = Quasar.date.formatDate(new Date(obj.time), 'YYYY-MM-DD HH:mm')
+  return obj
+}
 
-    return obj
-  }
-
-  new Vue({
+  window.app = Vue.createApp({
     el: '#vue',
     mixins: [windowMixin],
     data: function () {
