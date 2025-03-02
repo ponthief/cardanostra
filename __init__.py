@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from .views import cardanostra_generic_router
 from .views_api import cardanostra_api_router
 from .tasks import start_bot, every, restart_bot
-from . import db
+from .crud import db
 
 cardanostra_ext: APIRouter = APIRouter(prefix="/cardanostra", tags=["cardanostra"])
 cardanostra_ext.include_router(cardanostra_generic_router)
@@ -34,7 +34,8 @@ def cardanostra_stop():
             task.cancel()
         except Exception as ex:
             logger.warning(ex)
-__all__ = [    
+__all__ = [
+    "db",  
     "cardanostra_ext",
     "cardanostra_static_files",
     "cardanostra_start",
