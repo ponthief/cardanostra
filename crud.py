@@ -1,11 +1,11 @@
 from typing import List, Optional
-from . import db
+from lnbits.db import Database
 from .models import Card, NostrCardData, NostrBotCard, BCard, NostrAccount
-
 from .helpers import normalize_public_key
 from loguru import logger
-
 from .models import RelayData,  NostrAccountData
+
+db = Database("ext_cardanostra")
 
 # Relays
 async def get_relays() -> List[RelayData]:
