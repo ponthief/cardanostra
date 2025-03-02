@@ -3,8 +3,7 @@
 # add your dependencies here
 
 from http import HTTPStatus
-from fastapi import APIRouter, Depends
-from starlette.exceptions import HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from lnbits.decorators import WalletTypeInfo, require_admin_key
 from lnbits.helpers import urlsafe_short_hash
 from loguru import logger
