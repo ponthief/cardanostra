@@ -14,27 +14,16 @@ async def get_relays() -> List[RelayData]:
 
 
 async def get_relay_by_id(id: str) -> Optional[RelayData]:
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.relays WHERE id = ?", (id)
-    )
-    if not row:
-        return None
-
-    relay = dict(**row)
-
-    return RelayData.parse_obj(relay)
-
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.relays WHERE id = :id", {"id": id},
+        RelayData
+    )    
 
 async def get_relay_by_url(url: str) -> Optional[RelayData]:
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.relays WHERE url = ?", (url)
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.relays WHERE url = :url", {"url": url},
+        RelayData
     )
-    if not row:
-        return None
-
-    relay = dict(**row)
-
-    return RelayData.parse_obj(relay)
 
 
 async def add_relay(relay: RelayData) -> None:
@@ -44,9 +33,12 @@ async def add_relay(relay: RelayData) -> None:
             id,
             url            
         )
-        VALUES (?, ?)
+        VALUES (:id, :url)
         """,
-        (relay.id, relay.url),
+        {
+        "id"   :relay.id,
+        "url" :relay.url
+        },        
     )
     relay = await get_relay_by_id(relay.id)
     assert relay, "Nostr Relay couldn't be retrieved"
@@ -54,10 +46,9 @@ async def add_relay(relay: RelayData) -> None:
 
 
 async def delete_nostr_relay(id: str) -> None:
-    await db.execute("DELETE FROM cardanostra.relays WHERE id = ?", (id))
+    await db.execute("DELETE FROM cardanostra.relays WHERE id = :id", {"id": id})
 
 # Accounts
-
 
 async def get_nostr_accounts() -> List[NostrAccount]:
     rows = await db.fetchall("SELECT * FROM cardanostra.accounts")
@@ -71,9 +62,12 @@ async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
             id,
             nsec            
         )
-        VALUES (?, ?)
+        VALUES (:id, :nsec)
         """,
-        (account.id, account.nsec),
+        {
+        "id"   :account.id,
+        "nsec" :account.nsec
+        },
     )
     account = await get_account_by_id(account.id)
     assert account, "Newly created Nostr account couldn't be retrieved"
@@ -81,30 +75,19 @@ async def add_nostr_account(account: NostrAccount) -> NostrAccountData:
 
 
 async def get_account_by_id(id: str) -> Optional[NostrAccount]:
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.accounts WHERE id = ?", (id)
-    )
-    if not row:
-        return None
-
-    account = dict(**row)
-
-    return NostrAccount.parse_obj(account)
-
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.accounts WHERE id = :id", {"id": id},
+        NostrAccount
+    )   
 
 async def get_account_by_nsec(nsec: str) -> Optional[NostrAccount]:
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.accounts WHERE nsec = ?", (nsec)
-    )
-    if not row:
-        return None
-
-    account = dict(**row)
-
-    return NostrAccount.parse_obj(account)
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.accounts WHERE nsec = :nsec", {"nsec": nsec},
+        NostrAccount
+    )    
 
 async def delete_nostr_account(id: str) -> None:
-    await db.execute("DELETE FROM cardanostra.accounts WHERE id = ?", (id))
+    await db.execute("DELETE FROM cardanostra.accounts WHERE id = :id", {"id": id})
 
 
 # Cards
@@ -116,13 +99,13 @@ async def insert_card(uid, npub, card_name):
             npub,
             card_name            
         )
-            VALUES (?, ?, ?)
+            VALUES (:uid, :npub, :card_name)
         """,
-        (            
-            uid, 
-            npub,                       
-            card_name,            
-        ),
+        {           
+          "uid"  :uid, 
+          "npub" :npub,                       
+          "card_name" :card_name,            
+        },
     )
 
 
@@ -135,91 +118,79 @@ async def set_nostrbot_card_data(data: NostrCardData) -> NostrBotCard:
 
 
 async def get_nostrbotcard_by_uid(uid: str) -> Optional[NostrBotCard]:
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.cards WHERE uid = ?", (uid.upper(),)
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.cards WHERE uid = :uid", {"uid": uid},
+        NostrBotCard
     )
-    if not row:
-        return None
 
-    card = dict(**row)
-
-    return NostrBotCard.parse_obj(card)
-
-
-async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrBotCard]:    
-    row = await db.fetchone(
-        "SELECT * FROM cardanostra.cards WHERE card_name = ? AND npub = ?", (card_name, npub)
+async def check_card_owned_by_npub(card_name: str, npub: str) -> Optional[NostrBotCard]:
+    return await db.fetchone(
+        "SELECT * FROM cardanostra.cards WHERE card_name = :card_name and npub = :npub", {"card_name": card_name, "npub": npub},
+        NostrBotCard
     )
-    if not row:        
-        return None    
-    card = dict(**row)    
-    return NostrBotCard.parse_obj(card)
-
 
 async def get_npub_cards(npub: str) -> Optional[list]:    
     rows = await db.fetchall(
-        "SELECT card_name FROM cardanostra.cards WHERE npub = ?", (npub)
+        "SELECT card_name FROM cardanostra.cards WHERE npub = :npub", {"npub": npub}
     )
     if not rows:        
-        return None         
-    cards = [' '.join(card) for card in rows]         
+        return None            
+    cards = [' '.join(card.values()) for card in rows]         
     return ', '.join(cards)
 
 async def get_cards() -> List[NostrBotCard]:    
     rows = await db.fetchall("SELECT * FROM cardanostra.cards")
     return [NostrBotCard(**row) for row in rows]
 
-
-async def update_nostrbot_card(uid: str, **kwargs) -> Optional[NostrBotCard]:
-    # npub_hex = normalize_public_key(data.npub)   
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
-    await db.execute(
-        f"UPDATE cardanostra.cards SET {q} WHERE uid = ?",
-        (*kwargs.values(), uid.upper()),
-    )
-    row = await db.fetchone("SELECT * FROM cardanostra.cards WHERE uid = ?", (kwargs["uid"].upper(),))
-    return NostrBotCard(**row) if row else None
-
 async def delete_nostrbot_card(uid: str) -> None:
     # Delete cards
-    await db.execute("DELETE FROM cardanostra.cards WHERE uid = ?", (uid.upper()))
+    await db.execute("DELETE FROM cardanostra.cards WHERE uid = :uid", {"uid": uid.upper()})
+
+async def get_boltcard_by_uid(uid: str) -> Optional[BCard]:
+    return await db.fetchone(
+        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = :uid", {"uid": uid.upper()},
+        BCard
+    )
+
+async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:
+    if not kwargs:
+        return "No card/incorrect setting specified"   
+    col = [k for k in kwargs.keys()]
+    val = [v for v in kwargs.values()]      
+    if col[0] == 'enable':
+        await db.execute(f"UPDATE boltcards.cards SET enable = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
+    elif col[0] == 'tx_limit':
+        await db.execute(f"UPDATE boltcards.cards SET tx_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
+    elif col[0] == 'daily_limit':
+        await db.execute(f"UPDATE boltcards.cards SET daily_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
+    return await db.fetchone(
+        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = :uid", {"uid": uid.upper()},
+        BCard
+    )
 
 
-async def get_boltcard_by_uid(uid: str) -> Optional[Card]:    
+async def get_boltcard_bal(uid: str) -> Optional[int]:    
     row = await db.fetchone(
-        "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper())
-    )    
-    if not row:
-        return None
-
-    card = dict(**row)    
-    return BCard.parse_obj(card)
-
-
-async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:        
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])    
-    await db.execute(
-        f"UPDATE boltcards.cards SET {q} WHERE uid = ?",
-        (*kwargs.values(), uid.upper()),
-    )    
-    row = await db.fetchone("SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = ?", (uid.upper()))
-    return BCard(**row) if row else None
-
-
-async def get_boltcard_bal(uid: str) -> Optional[int]:          
-    row = await db.fetchone("SELECT wallet FROM boltcards.cards WHERE uid = ?", (uid.upper()))
-    if row:
-        row = await db.fetchone("SELECT balance FROM public.balances WHERE wallet = ?", (row[0]))
-        if row[0]:
-            return int(row[0]/1000)
+        "SELECT wallet FROM boltcards.cards WHERE uid = :uid", {"uid": uid.upper()}        
+    )       
+    if row:        
+        row = await db.fetchone(
+        "SELECT balance FROM public.balances WHERE wallet_id = :wallet_id", {"wallet_id": row.get('wallet')}        
+    )
+        if row:
+            return int(row.get('balance')/1000)
     return 0
 
-async def get_boltcard_spent_day(uid: str) -> Optional[int]:
-    row = await db.fetchone("SELECT wallet FROM boltcards.cards WHERE uid = ?", (uid.upper()))
+async def get_boltcard_spent_day(uid: str) -> Optional[int]:    
+    row = await db.fetchone(
+        "SELECT wallet FROM boltcards.cards WHERE uid = :uid", {"uid": uid.upper()}        
+    )
     if row:
-        row = await db.fetchone("SELECT sum(amount) FROM public.apipayments WHERE wallet = ? AND "
-                                "time BETWEEN date_trunc('day', NOW()) - INTERVAL '1 day' "
-                                "AND LOCALTIMESTAMP", (row[0]))        
-        if row[0]:
-            return abs(int(row[0]/1000))        
+        row = await db.fetchone(
+                    "SELECT sum(amount) FROM public.apipayments WHERE wallet_id = :wallet_id AND "
+                    "time BETWEEN date_trunc('day', NOW()) - INTERVAL '1 day' "
+                    "AND LOCALTIMESTAMP", {"wallet_id": row.get('wallet')}        
+    )
+        if row:
+            return abs(int(row.get("sum")/1000))        
     return 0

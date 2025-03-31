@@ -23,29 +23,34 @@
           <div class="col-auto">
             <q-btn flat color="grey" @click="exportAccountsCSV">Export to CSV</q-btn>
           </div>
-        </div>
+        </div>        
         <q-table
           dense
           flat
-          :data="accounts"
+          :rows="accounts"
           row-key="id"
           :columns="accountsTable.columns"
-          :pagination.sync="accountsTable.pagination"
-        >
-          {% raw %}
+          :v-model:pagination="accountsTable.pagination"
+        >          
           <template v-slot:header="props">
             <q-tr :props="props">
               <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
+              <q-th auto-width></q-th>
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.label"
+              ></q-th>
+              <q-th auto-width></q-th>
+              <q-th auto-width></q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
 
           <template v-slot:body="props">
             <q-tr :props="props">
-              <q-td auto-width>                
+              <q-td auto-width>
                 <q-btn
                   unelevated
                   dense
@@ -54,13 +59,15 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteAccount(props.row.id)"
                 ></q-btn>                
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
-              </q-td>
+              </q-td>              
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.value"
+              ></q-td>
             </q-tr>
-          </template>
-          {% endraw %}
+          </template>          
         </q-table>
       </q-card-section>
     </q-card>
@@ -77,18 +84,20 @@
         <q-table
           dense
           flat
-          :data="relays"
+          :rows="relays"
           row-key="id"
           :columns="relaysTable.columns"
-          :pagination.sync="relaysTable.pagination"
-        >
-          {% raw %}
+          v-model:pagination="relaysTable.pagination"
+        >          
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
+              <q-th auto-width></q-th>              
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.label"
+              ></q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
@@ -104,13 +113,15 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteRelay(props.row.id)"
                 ></q-btn>                
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
-              </q-td>
+              </q-td>              
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.value"
+              ></q-td>
             </q-tr>
-          </template>
-          {% endraw %}
+          </template>          
         </q-table>
       </q-card-section>
     </q-card>
@@ -127,18 +138,20 @@
         <q-table
           dense
           flat
-          :data="cards"
+          :rows="cards"
           row-key="uid"
           :columns="cardsTable.columns"
-          :pagination.sync="cardsTable.pagination"
-        >
-          {% raw %}
+          v-model:pagination="cardsTable.pagination"
+        >         
           <template v-slot:header="props">
             <q-tr :props="props">
-              <q-th auto-width></q-th>
-              <q-th v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.label }}
-              </q-th>
+              <q-th auto-width></q-th>              
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.label"
+              ></q-th>
               <q-th auto-width></q-th>
             </q-tr>
           </template>
@@ -154,16 +167,18 @@
                   :color="($q.dark.isActive) ? 'grey-7' : 'grey-5'"
                   @click="deleteCard(props.row.uid)"
                 ></q-btn>               
-              </q-td>
-              <q-td v-for="col in props.cols" :key="col.name" :props="props">
-                {{ col.value }}
-              </q-td>
+              </q-td>              
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                v-text="col.value"
+              ></q-td>
             </q-tr>
-          </template>
-          {% endraw %}
+          </template>          
         </q-table>
       </q-card-section>
-    </q-card>   
+    </q-card> 
   </div>
 
   <div class="col-12 col-md-5 q-gutter-y-md">
@@ -208,7 +223,7 @@
   </div>
 
   <q-dialog v-model="accountDialog.show" position="top" @hide="closeaccountDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl">
       <q-form @submit="saveAccount" class="q-gutter-md">
         <q-input
           filled
@@ -237,7 +252,7 @@
   </q-dialog>
   
   <q-dialog v-model="relayDialog.show" position="top" @hide="closerelayDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl">
       <q-form @submit="saveRelay" class="q-gutter-md">
         <q-input          
           filled          
@@ -266,7 +281,7 @@
   </q-dialog>
 
   <q-dialog v-model="cardDialog.show" position="top" @hide="closecardDialog">
-    <q-card class="q-pa-lg q-pt-xl" style="width: 500px">
+    <q-card class="q-pa-lg q-pt-xl">
       <q-form @submit="saveCard" class="q-gutter-md">
         <q-input
           filled
@@ -324,7 +339,7 @@
   window.app = Vue.createApp({
     el: '#vue',
     mixins: [windowMixin],
-    data: function () {
+    data() {      
       return {
         cards: [],
         accounts: [],
@@ -332,7 +347,7 @@
         accountDialog: {
         show: false,
         data: {
-          id: '',                    
+          id: '',
           nsec:''
         },
         temp: {}
@@ -406,226 +421,195 @@
       }
     },
     methods: {   
-      closeaccountDialog: function () {
+      closeaccountDialog() {
         this.accountDialog.data = {}
       },
       
-      closerelayDialog: function () {
+      closerelayDialog() {
         this.relayDialog.data = {}
       },
 
-      closecardDialog: function () {
+      closecardDialog() {
         this.cardDialog.data = {}
       },      
-      restartNostrConnection: function () {        
-        var self = this               
+      restartNostrConnection() {                              
         LNbits.api
           .request(
             'PUT',
             '/cardanostra/api/v1/restart',
-            self.g.user.wallets[0].adminkey,                                                     
+            this.g.user.wallets[0].adminkey,                                                     
             )
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+            .catch(LNbits.utils.notifyApiError)
       },
-      saveAccount: function () {
-        var data = this.accountDialog.data
-        var self = this
-
+      saveAccount() {
+        var data = this.accountDialog.data        
         LNbits.api
           .request(
             'POST',
             '/cardanostra/api/v1/account',                                  
-            self.g.user.wallets[0].adminkey,
+            this.g.user.wallets[0].adminkey,
             data
           )
-          .then(function (response) {
+          .then(response => {
             if (response.data != '') {
-              self.accounts.push(mapCard(response.data)) 
+              this.accounts.push(mapCard(response.data)) 
             }
-            self.accountDialog.show = false
-            self.accountDialog.data = {}
+            this.accountDialog.show = false
+            this.accountDialog.data = {}
           })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          .catch(LNbits.utils.notifyApiError)
       },
-      saveRelay: function () {
+      saveRelay() {
         var data = this.relayDialog.data
-        var self = this
-
         LNbits.api
           .request(
             'POST',
             '/cardanostra/api/v1/relay',  
-            self.g.user.wallets[0].adminkey,                    
+            this.g.user.wallets[0].adminkey,                    
             data          
           )
-          .then(function (response) {
-            if (response.data != '') {
-            self.relays.push(mapCard(response.data))
-            }
-
-            self.relayDialog.show = false
-            self.relayDialog.data = {}
+          .then(response => {
+             if (response.data != '') {
+                this.relays.push(mapCard(response.data))
+             }            
+            this.relayDialog.show = false
+            this.relayDialog.data = {}
           })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          .catch(LNbits.utils.notifyApiError)
       },
-      saveCard: function () {
+      saveCard() {
         var data = this.cardDialog.data
-        var self = this
-
         LNbits.api
           .request(
             'POST',
             '/cardanostra/api/v1/register',          
-            self.g.user.wallets[0].adminkey,
+            this.g.user.wallets[0].adminkey,
             data
           )
-          .then(function (response) {
+          .then(response => {
             if (response.data != '') {
-            self.cards.push(mapCard(response.data))
+            this.cards.push(mapCard(response.data))
             }
-
-            self.cardDialog.show = false
-            self.cardDialog.data = {}
+            this.cardDialog.show = false
+            this.cardDialog.data = {}
           })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
+          .catch(LNbits.utils.notifyApiError)
       },      
-      deleteAccount: function (id) {
-        var self = this
-        var account = _.findWhere(this.accounts, {id: id})
+      deleteAccount(id) {       
+        // var account = _.findWhere(this.accounts, {id: id})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this Nostr account?')
-          .onOk(function () {
+          .onOk(() => {
             LNbits.api
               .request(
                 'DELETE',
                 '/cardanostra/api/v1/accounts/' + id,
-                self.g.user.wallets[0].adminkey               
+                this.g.user.wallets[0].adminkey               
               )
-              .then(function (response) {
-                self.accounts = _.reject(self.accounts, function (obj) {
-                  return obj.id === id
+              .then(response => {
+                this.accounts = _.reject(this.accounts, function (obj) {
+                  return obj.id == id
                 })
               })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
+              .catch(LNbits.utils.notifyApiError)
           })
       },
-      deleteRelay: function (id) {
-        var self = this
-        var relay = _.findWhere(this.relays, {id: id})
-
+      deleteRelay(id) {        
+        // let relay = _.findWhere(this.relays, {id: id})
+        console.log(this.relays)
         LNbits.utils
           .confirmDialog('Are you sure you want to delete this relay?')
-          .onOk(function () {
+          .onOk(() => {
             LNbits.api
               .request(
                 'DELETE',
                 '/cardanostra/api/v1/relays/' + id,
-                self.g.user.wallets[0].adminkey
-              )
-              .then(function (response) {
-                self.relays = _.reject(self.relays, function (obj) {
-                  return obj.id === id
+                this.g.user.wallets[0].adminkey
+              )              
+              .then(response => {                              
+                this.relays = _.reject(this.relays, function (obj) {
+                  return obj.id == id
                 })
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
+              })                            
+              .catch(LNbits.utils.notifyApiError)              
+          })          
       },
-      deleteCard: function (uid) {
-        var self = this
-        var card = _.findWhere(this.cards, {uid: uid})
+      deleteCard(uid) {        
+        // var card = _.findWhere(this.cards, {uid: uid})
 
         LNbits.utils
           .confirmDialog('Are you sure you want to de-register this card?')
-          .onOk(function () {
+          .onOk(() => {
             LNbits.api
               .request(
                 'DELETE',
                 '/cardanostra/api/v1/cards/' + uid,
-                self.g.user.wallets[0].adminkey
+                this.g.user.wallets[0].adminkey
               )
-              .then(function (response) {
-                self.cards = _.reject(self.cards, function (obj) {
-                  return obj.uid === uid
+              .then(response => {
+                this.cards = _.reject(this.cards, function (obj) {
+                  return obj.uid == uid
                 })
               })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
+              .catch(LNbits.utils.notifyApiError)
           })
       },
-      exportAccountsCSV: function () {
+      exportAccountsCSV() {
         LNbits.utils.exportCSV(this.accountsTable.columns, this.accounts)
       },
-      exportRelaysCSV: function () {
+      exportRelaysCSV() {
         LNbits.utils.exportCSV(this.relaysTable.columns, this.relays)
       },
-      exportCardsCSV: function () {
+      exportCardsCSV() {
         LNbits.utils.exportCSV(this.cardsTable.columns, this.cards)
       },
-    getCards: function () {
-      var self = this
-
+    getCards() {      
       LNbits.api
         .request(
           'GET',
           '/cardanostra/api/v1/cards?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey          
         )
-        .then(function (response) {          
-          self.cards = response.data.map(function (obj) {
+        .then(response => {                   
+          this.cards = response.data.map(function (obj) {
             return mapCard(obj)
           })          
         })        
     },
-    getAccounts: function () {
-      var self = this
-
+    getAccounts() {      
       LNbits.api
         .request(
           'GET',
           '/cardanostra/api/v1/accounts?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey
         )
-        .then(function (response) {
-          self.accounts = response.data.map(function (obj) {
+        .then(response => {
+          this.accounts = response.data.map(function (obj) {
             return mapCard(obj)
           })
         })        
     },
-    getRelays: function () {
-      var self = this
-
+    getRelays() {      
       LNbits.api
         .request(
           'GET',
           '/cardanostra/api/v1/relays?usr=' + this.g.user.id,
           this.g.user.wallets[0].adminkey
         )
-        .then(function (response) {
-          self.relays = response.data.map(function (obj) {
+        .then(response => {          
+          this.relays = response.data.map(function (obj) {
             return mapCard(obj)
           })
-        })        
+        })      
     },
   },
-    created: function () {  
-        var self = this             
+    created() { 
+      if (this.g.user.wallets.length) {                    
         this.getCards()
         this.getAccounts()
         this.getRelays()         
+      }
     }       
   })
 </script>
