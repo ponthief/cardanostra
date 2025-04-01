@@ -192,5 +192,7 @@ async def get_boltcard_spent_day(uid: str) -> Optional[int]:
                     "AND LOCALTIMESTAMP", {"wallet_id": row.get('wallet')}        
     )
         if row:
+            if row.get("sum") is None:
+                return 0
             return abs(int(row.get("sum")/1000))        
     return 0
