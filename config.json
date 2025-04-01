@@ -3,5 +3,5 @@
   "short_description": "Nostr BoltCards Manager",
 	"tile": "/cardanostra/static/cardanostra.png",
   "contributors": ["ponthief"],
-  "min_lnbits_version": "0.12.5"
+  "min_lnbits_version": "v1.0.0-rc9"
 }

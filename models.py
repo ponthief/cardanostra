@@ -1,11 +1,7 @@
-from __future__ import annotations
-from sqlite3 import Row
 from pydantic import BaseModel
-from fastapi import Query
-from sqlite3 import Row
+from fastapi import Query, Request
 from typing import List, Optional 
 from lnbits.helpers import urlsafe_short_hash
-
 
 class RelayStatus(BaseModel):
     num_sent_events: Optional[int] = 0
@@ -13,7 +9,6 @@ class RelayStatus(BaseModel):
     error_counter: Optional[int] = 0
     error_list: Optional[List] = []
     notice_list: Optional[List] = []
-
 
 class Relay(BaseModel):
     id: Optional[str] = None
@@ -41,10 +36,6 @@ class RelayData(BaseModel):
         if not self.id:
             self.id = urlsafe_short_hash()
 
-    @classmethod
-    def from_row(cls, row: Row) -> "RelayData":
-        return cls(**dict(row)) 
-
 
 class NostrAccount(BaseModel):
     id: Optional[str] = None
@@ -53,11 +44,7 @@ class NostrAccount(BaseModel):
     def _init__(self):
         if not self.id:
             self.id = urlsafe_short_hash()
-    
-    @classmethod
-    def from_row(cls, row: Row) -> "NostrAccount":
-        return cls(**dict(row)) 
-    
+
 
 class NostrAccountData(BaseModel):    
     #id: str = Query(...)
@@ -83,9 +70,6 @@ class Card(BaseModel):
     otp: str
     time: int
 
-    @classmethod
-    def from_row(cls, row: Row) -> "Card":
-        return cls(**dict(row))
     
 
 class BCard(BaseModel):    
@@ -95,11 +79,7 @@ class BCard(BaseModel):
 
     def __str__(self):
         return f'Max Tx Limit: {self.tx_limit} - Max Day Limit: {self.daily_limit}, Enabled: {self.enable}'
-    
-    
-    @classmethod
-    def from_row(cls, row: Row) -> "BCard":
-        return cls(**dict(row))   
+ 
 
 
 class NostrCardData(BaseModel):    
@@ -111,8 +91,5 @@ class NostrCardData(BaseModel):
 class NostrBotCard(BaseModel):    
     uid: str
     npub: str
-    card_name: str        
-
-    @classmethod
-    def from_row(cls, row: Row) -> "NostrBotCard":
-        return cls(**dict(row))       
+    card_name: str
+      
