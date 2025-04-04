@@ -160,9 +160,11 @@ async def update_boltcard(uid: str, **kwargs) -> Optional[BCard]:
     if col[0] == 'enable':
         await db.execute(f"UPDATE boltcards.cards SET enable = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
     elif col[0] == 'tx_limit':
-        await db.execute(f"UPDATE boltcards.cards SET tx_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
+        if val[0].isnumeric():            
+            await db.execute(f"UPDATE boltcards.cards SET tx_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
     elif col[0] == 'daily_limit':
-        await db.execute(f"UPDATE boltcards.cards SET daily_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
+        if val[0].isnumeric():
+            await db.execute(f"UPDATE boltcards.cards SET daily_limit = :val WHERE uid = :uid", {"val" : val[0], "uid": uid.upper()})
     return await db.fetchone(
         "SELECT tx_limit, daily_limit, enable FROM boltcards.cards WHERE uid = :uid", {"uid": uid.upper()},
         BCard
