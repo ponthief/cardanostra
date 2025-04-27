@@ -1,0 +1,17 @@
+{
+  "extensions": [
+    {
+      "id": "cardanostra",
+      "name": "CardaNostra",
+      "version": 1.0,
+      "short_description": "Control BoltCards via Nostr",      
+      "archive": "https://github.com/ponthief/cardanostra/archive/refs/tags/1.0.zip",            
+      "min_lnbits_version": "1.0.0",
+      "repo": "https://github.com/ponthief/cardanostra",
+      "icon": "https://github.com/ponthief/cardanostra/raw/main/static/image/cardanostra.png",
+      "details_link": "https://raw.githubusercontent.com/ponthief/cardanostra/main/config.json",
+      "pay_link": "https://bolt.bitbest.net/paywall/bwHLzfots4NNfBUqCVSx5b"      
+    }
+    
+  ]
+}  
