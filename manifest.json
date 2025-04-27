@@ -12,9 +12,7 @@
       "icon": "https://github.com/ponthief/cardanostra/raw/main/static/cardanostra.png",
       "details_link": "https://raw.githubusercontent.com/ponthief/cardanostra/main/config.json",
       "pay_link": "https://bolt.bitbest.net/paywall/bwHLzfots4NNfBUqCVSx5b",
-      "cost_sats": 21,
-      "paid_sats": 0,
-      "payment_hash": null    
+      "cost_sats": 21    
     }
     
   ]
