@@ -31,7 +31,8 @@ Once BoltCard(s) are added via BoltCards Extension, Administrator account can:
     - Enter NPub - this is Public Key for the Nostr Account that also "owns" the card and wishes to control it via Bot
     
 Once all 3 items are added into LNbits, users with cards who are following LNbits Nostr account will be able to manage their cards by sending [NIP59](https://github.com/nostr-protocol/nips/blob/master/59.md) GiftWrap messages.
-For sending/receiving GiftWrap messages between client and Bot, clients will have to *enable Incognito mode* in their Nostr apps - see image below 
+For sending/receiving GiftWrap messages between client and Bot, clients will have to *enable Incognito mode* in their Nostr apps. 
+DM Relays MUST be added to both client and LnBits bot in order for messages to be exchanged.
 <p float="left">
 <img src= "https://github.com/ponthief/cardanostra/blob/main/static/cardanostra_menu.jpg" width="300" height="575">
 </p>
