@@ -1,17 +1,16 @@
-[tool.poetry]
+[project]
 name = "cardanostra"
 version = "0.3.0"
 description = "Nostr BoltCard Extension"
-authors = ["Ponthief"]
+authors = [{ name = "Ponthief" }]
+requires-python = ">=3.12,<3.13"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.12"
-aiohttp = "^3.8.5"
-cachetools = "^5.3.1"
-pycryptodome = "^3.20.0"
-
+dependencies = [
+    "aiohttp>=3.8.5,<4",
+    "cachetools>=5.3.1,<6",
+    "pycryptodome>=3.20.0,<4",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
